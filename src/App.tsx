@@ -1,0 +1,459 @@
+import React, { useState } from 'react';
+import { Navbar } from './components/Navbar';
+import { ServicesHubView } from './components/ServicesHubView';
+import { TrackingView } from './components/TrackingView';
+import { AppointmentBookingView } from './components/AppointmentBookingView';
+import { PickupSchedulerView } from './components/PickupSchedulerView';
+import { InvoiceReceiptView } from './components/InvoiceReceiptView';
+import { StaffDashboard } from './components/staff/StaffDashboard';
+import { AdminDashboard } from './components/admin/AdminDashboard';
+import { ArchitectureModal } from './components/ArchitectureModal';
+import {
+  INITIAL_SHIPMENTS,
+  INITIAL_INVOICES,
+  INITIAL_APPOINTMENTS,
+  INITIAL_PICKUPS,
+} from './data/mockData';
+import { Shipment, Invoice, Appointment, PickupRequest, UserRole } from './types';
+import {
+  MapPin,
+  Phone,
+  Mail,
+  ShieldCheck,
+  Truck,
+  Search,
+  CheckCircle2,
+  Calendar,
+  Package,
+  Clock,
+  ArrowRight,
+  Sparkles,
+  HelpCircle,
+  FileCheck,
+  Shield,
+  Briefcase,
+  Store,
+} from 'lucide-react';
+
+export default function App() {
+  const [portal, setPortal] = useState<'consumer' | 'staff' | 'admin'>('consumer');
+  const [activeTab, setActiveTab] = useState<string>('services');
+  const [userRole, setUserRole] = useState<UserRole>('customer');
+  const [isArchitectureOpen, setIsArchitectureOpen] = useState<boolean>(false);
+  const [heroSearch, setHeroSearch] = useState<string>('');
+
+  // Application State
+  const [shipments, setShipments] = useState<Shipment[]>(INITIAL_SHIPMENTS);
+  const [invoices, setInvoices] = useState<Invoice[]>(INITIAL_INVOICES);
+  const [appointments, setAppointments] = useState<Appointment[]>(INITIAL_APPOINTMENTS);
+  const [pickups, setPickups] = useState<PickupRequest[]>(INITIAL_PICKUPS);
+  const [activeTrackingNumber, setActiveTrackingNumber] = useState<string>('JB-8829-US');
+
+  const handleUpdateShipment = (updated: Shipment) => {
+    setShipments((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
+  };
+
+  const handleAddShipment = (newShipment: Shipment) => {
+    setShipments((prev) => [newShipment, ...prev]);
+  };
+
+  const handleUpdateInvoice = (updated: Invoice) => {
+    setInvoices((prev) => {
+      const exists = prev.some((inv) => inv.id === updated.id);
+      if (exists) {
+        return prev.map((inv) => (inv.id === updated.id ? updated : inv));
+      }
+      return [updated, ...prev];
+    });
+  };
+
+  const handleAddAppointment = (newApt: Appointment) => {
+    setAppointments((prev) => [newApt, ...prev]);
+  };
+
+  const handleAddPickup = (newPickup: PickupRequest) => {
+    setPickups((prev) => [newPickup, ...prev]);
+  };
+
+  const handleUpdatePickup = (updated: PickupRequest) => {
+    setPickups((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
+  };
+
+  const handleQuickTrack = (trackingNo: string) => {
+    setPortal('consumer');
+    setActiveTrackingNumber(trackingNo.trim());
+    setActiveTab('track');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleHeroTrackSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (heroSearch.trim()) {
+      handleQuickTrack(heroSearch);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col font-sans selection:bg-blue-600 selection:text-white">
+      {/* Top Header & Navigation with Integrated Role/Dashboard Switcher */}
+      <Navbar
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        portal={portal}
+        setPortal={(newPortal) => {
+          setPortal(newPortal);
+          if (newPortal === 'consumer') setUserRole('customer');
+          else if (newPortal === 'staff') setUserRole('associate');
+          else setUserRole('admin');
+        }}
+        userRole={userRole}
+        setUserRole={setUserRole}
+        onOpenArchitecture={() => setIsArchitectureOpen(true)}
+      />
+
+      {/* Main Canvas Based on Selected Dashboard */}
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+        {/* ======================================================================= */}
+        {/* 1. STAFF DASHBOARD                                                      */}
+        {/* ======================================================================= */}
+        {portal === 'staff' && (
+          <StaffDashboard
+            shipments={shipments}
+            pickups={pickups}
+            appointments={appointments}
+            onAddShipment={handleAddShipment}
+            onUpdateShipment={handleUpdateShipment}
+            onUpdatePickup={handleUpdatePickup}
+            onSwitchToConsumer={() => setPortal('consumer')}
+            onSwitchToAdmin={() => setPortal('admin')}
+          />
+        )}
+
+        {/* ======================================================================= */}
+        {/* 2. ADMIN DASHBOARD                                                      */}
+        {/* ======================================================================= */}
+        {portal === 'admin' && (
+          <AdminDashboard
+            shipments={shipments}
+            invoices={invoices}
+            appointments={appointments}
+            pickups={pickups}
+            onUpdateInvoice={handleUpdateInvoice}
+            onOpenArchitecture={() => setIsArchitectureOpen(true)}
+            onSwitchToConsumer={() => setPortal('consumer')}
+            onSwitchToStaff={() => setPortal('staff')}
+          />
+        )}
+
+        {/* ======================================================================= */}
+        {/* 3. CONSUMER STOREFRONT DASHBOARD                                        */}
+        {/* ======================================================================= */}
+        {portal === 'consumer' && (
+          <>
+            {/* Consumer Welcome Hero (Displayed on the Home & Services view) */}
+            {activeTab === 'services' && (
+              <section className="mb-8 bg-gradient-to-b from-white to-blue-50/40 rounded-3xl border border-blue-100/80 p-6 sm:p-10 shadow-sm relative overflow-hidden">
+                <div className="absolute -right-16 -top-16 w-80 h-80 bg-blue-400/10 rounded-full blur-3xl pointer-events-none" />
+                <div className="absolute -left-16 -bottom-16 w-80 h-80 bg-amber-400/10 rounded-full blur-3xl pointer-events-none" />
+
+                <div className="max-w-3xl space-y-4 relative z-10">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-200/80 text-blue-700 text-xs font-semibold">
+                    <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+                    <span>Atlanta&apos;s Friendly Shipping & Mailbox Store</span>
+                  </div>
+
+                  <h1 className="text-3xl sm:text-4xl lg:text-5xl font-display font-bold text-gray-900 tracking-tight leading-[1.15]">
+                    Shipping, Packing & Notary Made Simple.
+                  </h1>
+
+                  <p className="text-base sm:text-lg text-gray-600 font-normal leading-relaxed">
+                    Compare rates and ship with <strong className="text-gray-900">FedEx, UPS, and USPS</strong> all under one roof. Rent a private street address mailbox, book a certified notary, or schedule doorstep pickups in Metro Atlanta.
+                  </p>
+
+                  {/* Fast Track Package Bar */}
+                  <div className="pt-2">
+                    <form onSubmit={handleHeroTrackSubmit} className="flex flex-col sm:flex-row gap-2 max-w-xl">
+                      <div className="relative flex-1">
+                        <Search className="w-5 h-5 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" />
+                        <input
+                          type="text"
+                          value={heroSearch}
+                          onChange={(e) => setHeroSearch(e.target.value)}
+                          placeholder="Enter tracking number (e.g. JB-8829-US)..."
+                          className="w-full pl-12 pr-4 py-3.5 bg-white rounded-2xl border border-gray-300/80 text-gray-900 placeholder:text-gray-400 text-sm font-medium focus:border-blue-600 focus:ring-4 focus:ring-blue-100 focus:outline-none shadow-sm transition"
+                        />
+                      </div>
+                      <button
+                        type="submit"
+                        className="px-6 py-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-semibold text-sm transition shadow-sm hover:shadow flex items-center justify-center gap-2 cursor-pointer shrink-0"
+                      >
+                        <span>Track Package</span>
+                        <ArrowRight className="w-4 h-4" />
+                      </button>
+                    </form>
+
+                    {/* Quick Demo Pill buttons */}
+                    <div className="flex flex-wrap items-center gap-2 mt-3 text-xs text-gray-500">
+                      <span className="font-medium text-gray-600">Sample tracking:</span>
+                      <button
+                        type="button"
+                        onClick={() => handleQuickTrack('JB-8829-US')}
+                        className="px-2.5 py-1 rounded-full bg-white hover:bg-blue-50 text-blue-700 font-medium border border-gray-200 transition cursor-pointer"
+                      >
+                        JB-8829-US (FedEx)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleQuickTrack('JB-9102-US')}
+                        className="px-2.5 py-1 rounded-full bg-white hover:bg-amber-50 text-amber-800 font-medium border border-gray-200 transition cursor-pointer"
+                      >
+                        JB-9102-US (UPS)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleQuickTrack('JB-4421-US')}
+                        className="px-2.5 py-1 rounded-full bg-white hover:bg-blue-50 text-blue-800 font-medium border border-gray-200 transition cursor-pointer"
+                      >
+                        JB-4421-US (USPS)
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Quick Action Navigation Tiles */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mt-8 pt-6 border-t border-blue-100/60">
+                  <button
+                    onClick={() => setActiveTab('track')}
+                    className="p-4 rounded-2xl bg-white hover:bg-blue-50/60 border border-gray-200/80 hover:border-blue-300 text-left transition shadow-xs group cursor-pointer"
+                  >
+                    <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center mb-2.5 group-hover:scale-105 transition-transform">
+                      <Package className="w-5 h-5" />
+                    </div>
+                    <h4 className="font-semibold text-gray-900 text-sm">Track Package</h4>
+                    <p className="text-xs text-gray-500 mt-0.5">Real-time status & route</p>
+                  </button>
+
+                  <button
+                    onClick={() => setActiveTab('pickup')}
+                    className="p-4 rounded-2xl bg-white hover:bg-blue-50/60 border border-gray-200/80 hover:border-blue-300 text-left transition shadow-xs group cursor-pointer"
+                  >
+                    <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center mb-2.5 group-hover:scale-105 transition-transform">
+                      <Truck className="w-5 h-5" />
+                    </div>
+                    <h4 className="font-semibold text-gray-900 text-sm">Schedule Pickup</h4>
+                    <p className="text-xs text-gray-500 mt-0.5">Doorstep collection</p>
+                  </button>
+
+                  <button
+                    onClick={() => setActiveTab('appointment')}
+                    className="p-4 rounded-2xl bg-white hover:bg-blue-50/60 border border-gray-200/80 hover:border-blue-300 text-left transition shadow-xs group cursor-pointer"
+                  >
+                    <div className="w-9 h-9 rounded-xl bg-purple-50 text-purple-700 flex items-center justify-center mb-2.5 group-hover:scale-105 transition-transform">
+                      <FileCheck className="w-5 h-5" />
+                    </div>
+                    <h4 className="font-semibold text-gray-900 text-sm">Book Notary</h4>
+                    <p className="text-xs text-gray-500 mt-0.5">Licensed GA notary on duty</p>
+                  </button>
+
+                  <button
+                    onClick={() => setActiveTab('invoices')}
+                    className="p-4 rounded-2xl bg-white hover:bg-blue-50/60 border border-gray-200/80 hover:border-blue-300 text-left transition shadow-xs group cursor-pointer"
+                  >
+                    <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center mb-2.5 group-hover:scale-105 transition-transform">
+                      <ShieldCheck className="w-5 h-5" />
+                    </div>
+                    <h4 className="font-semibold text-gray-900 text-sm">Pay Bill</h4>
+                    <p className="text-xs text-gray-500 mt-0.5">Quick & secure checkout</p>
+                  </button>
+                </div>
+              </section>
+            )}
+
+            {/* Dynamic Consumer Views */}
+            <div>
+              {activeTab === 'services' && (
+                <ServicesHubView
+                  onSelectService={(s) => {
+                    if (s === 'pickup') setActiveTab('pickup');
+                    else if (s === 'notary' || s === 'packing') setActiveTab('appointment');
+                    else setActiveTab('track');
+                  }}
+                  onBookAppointment={() => {
+                    setActiveTab('appointment');
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  onSchedulePickup={() => {
+                    setActiveTab('pickup');
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                />
+              )}
+
+              {activeTab === 'track' && (
+                <TrackingView
+                  shipments={shipments}
+                  initialTrackingId={activeTrackingNumber}
+                  onUpdateShipment={handleUpdateShipment}
+                />
+              )}
+
+              {activeTab === 'appointment' && (
+                <AppointmentBookingView
+                  appointments={appointments}
+                  onAddAppointment={handleAddAppointment}
+                />
+              )}
+
+              {activeTab === 'pickup' && (
+                <PickupSchedulerView
+                  pickups={pickups}
+                  onAddPickup={handleAddPickup}
+                />
+              )}
+
+              {activeTab === 'invoices' && (
+                <InvoiceReceiptView
+                  invoices={invoices}
+                  onUpdateInvoice={handleUpdateInvoice}
+                />
+              )}
+            </div>
+          </>
+        )}
+      </main>
+
+      {/* Clean, Approachable Consumer Footer */}
+      <footer className="bg-white border-t border-gray-200 mt-12 pt-12 pb-8 text-gray-600">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 pb-10 border-b border-gray-100">
+            {/* Column 1: Brand & Bio */}
+            <div className="lg:col-span-2 space-y-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold text-sm">
+                  JB
+                </div>
+                <span className="font-display font-bold text-gray-900 text-base">
+                  JB & Best Logistics LLC
+                </span>
+              </div>
+              <p className="text-sm text-gray-500 leading-relaxed max-w-sm">
+                Your neighborhood retail shipping store and private mailbox hub in Buckhead / Midtown Atlanta. Licensed, bonded, and insured in the State of Georgia.
+              </p>
+              <div className="pt-2 flex flex-wrap items-center gap-2 text-xs text-gray-500">
+                <span className="px-2.5 py-1 rounded-full bg-gray-100 font-medium">FedEx Authorized</span>
+                <span className="px-2.5 py-1 rounded-full bg-gray-100 font-medium">UPS Service Center</span>
+                <span className="px-2.5 py-1 rounded-full bg-gray-100 font-medium">USPS Approved</span>
+              </div>
+            </div>
+
+            {/* Column 2: Quick Links */}
+            <div className="space-y-2.5 text-sm">
+              <h4 className="font-semibold text-gray-900">Services</h4>
+              <ul className="space-y-2 text-gray-500">
+                <li>
+                  <button onClick={() => { setPortal('consumer'); setActiveTab('services'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="hover:text-blue-600 transition cursor-pointer">
+                    Shipping & Carriers
+                  </button>
+                </li>
+                <li>
+                  <button onClick={() => { setPortal('consumer'); setActiveTab('services'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="hover:text-blue-600 transition cursor-pointer">
+                    Private Mailbox Rental
+                  </button>
+                </li>
+                <li>
+                  <button onClick={() => { setPortal('consumer'); setActiveTab('appointment'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="hover:text-blue-600 transition cursor-pointer">
+                    Georgia Notary Public
+                  </button>
+                </li>
+                <li>
+                  <button onClick={() => { setPortal('consumer'); setActiveTab('pickup'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="hover:text-blue-600 transition cursor-pointer">
+                    Schedule Doorstep Pickup
+                  </button>
+                </li>
+              </ul>
+            </div>
+
+            {/* Column 3: Store Hours */}
+            <div className="space-y-2.5 text-sm">
+              <h4 className="font-semibold text-gray-900">Store Hours</h4>
+              <div className="space-y-1.5 text-gray-500 text-xs sm:text-sm">
+                <div className="flex justify-between">
+                  <span>Monday – Friday:</span>
+                  <span className="font-medium text-gray-800">8:00 AM – 7:00 PM</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Saturday:</span>
+                  <span className="font-medium text-gray-800">9:00 AM – 4:00 PM</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Sunday:</span>
+                  <span className="text-gray-400">Closed (24/7 Mailbox)</span>
+                </div>
+                <p className="text-blue-700 font-medium text-xs pt-1.5">
+                  Daily Carrier Cutoff: 5:30 PM EST
+                </p>
+              </div>
+            </div>
+
+            {/* Column 4: Location & Portals */}
+            <div className="space-y-2.5 text-sm">
+              <h4 className="font-semibold text-gray-900">Role Dashboards</h4>
+              <ul className="space-y-2 text-xs sm:text-sm">
+                <li>
+                  <button
+                    onClick={() => { setPortal('consumer'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                    className={`flex items-center gap-1.5 transition cursor-pointer ${portal === 'consumer' ? 'text-blue-600 font-bold' : 'text-gray-500 hover:text-blue-600'}`}
+                  >
+                    <Store className="w-3.5 h-3.5" />
+                    <span>Consumer Storefront</span>
+                  </button>
+                </li>
+                <li>
+                  <button
+                    onClick={() => { setPortal('staff'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                    className={`flex items-center gap-1.5 transition cursor-pointer ${portal === 'staff' ? 'text-amber-600 font-bold' : 'text-gray-500 hover:text-amber-600'}`}
+                  >
+                    <Truck className="w-3.5 h-3.5" />
+                    <span>Staff Operations Portal</span>
+                  </button>
+                </li>
+                <li>
+                  <button
+                    onClick={() => { setPortal('admin'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                    className={`flex items-center gap-1.5 transition cursor-pointer ${portal === 'admin' ? 'text-slate-900 font-bold' : 'text-gray-500 hover:text-slate-900'}`}
+                  >
+                    <Shield className="w-3.5 h-3.5" />
+                    <span>Admin Executive Console</span>
+                  </button>
+                </li>
+              </ul>
+
+              <div className="pt-2 text-xs text-gray-500">
+                <p>📍 2450 Piedmont Rd NE, Atlanta GA</p>
+                <p>📞 (404) 555-0199</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-gray-500">
+            <p>© {new Date().getFullYear()} JB & Best Logistics LLC. All rights reserved.</p>
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => setIsArchitectureOpen(true)}
+                className="text-gray-400 hover:text-gray-600 underline cursor-pointer text-xs"
+              >
+                Developer Info & Architecture
+              </button>
+            </div>
+          </div>
+        </div>
+      </footer>
+
+      {/* Code Architecture Explorer Modal */}
+      <ArchitectureModal
+        isOpen={isArchitectureOpen}
+        onClose={() => setIsArchitectureOpen(false)}
+      />
+    </div>
+  );
+}

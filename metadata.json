@@ -1,0 +1,6 @@
+{
+  "name": "JB & Best Logistics",
+  "description": "Official multi-carrier shipping, logistics, real-time live package tracking, and retail hub web application for JB & Best Logistics LLC.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

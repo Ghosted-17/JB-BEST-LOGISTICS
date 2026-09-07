@@ -1,0 +1,101 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile with role-based access control for customers, associates, and admins.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "displayName": { "type": "string" },
+        "phoneNumber": { "type": "string" },
+        "role": { "type": "string", "enum": ["customer", "associate", "admin"] },
+        "mailboxNumber": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["uid", "email", "displayName", "role"]
+    },
+    "Shipment": {
+      "title": "Shipment",
+      "description": "Multi-carrier package tracking record with live GPS coordinates and milestone logs.",
+      "type": "object",
+      "properties": {
+        "trackingNumber": { "type": "string" },
+        "carrier": { "type": "string", "enum": ["fedex", "ups", "usps", "dhl", "jb_freight"] },
+        "serviceLevel": { "type": "string" },
+        "currentStatus": { "type": "string", "enum": ["order_created", "picked_up", "in_transit", "out_for_delivery", "delivered", "exception", "returned"] },
+        "estimatedDelivery": { "type": "string" },
+        "customerId": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["trackingNumber", "carrier", "currentStatus"]
+    },
+    "Appointment": {
+      "title": "Appointment",
+      "description": "Booking for retail services like Notary Public, custom packing, and mailbox onboarding.",
+      "type": "object",
+      "properties": {
+        "customerId": { "type": "string" },
+        "customerName": { "type": "string" },
+        "customerEmail": { "type": "string" },
+        "serviceType": { "type": "string" },
+        "appointmentDate": { "type": "string" },
+        "timeSlot": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "confirmed", "in_progress", "completed", "cancelled"] }
+      },
+      "required": ["customerId", "customerName", "serviceType", "appointmentDate", "timeSlot", "status"]
+    },
+    "PickupRequest": {
+      "title": "PickupRequest",
+      "description": "B2B and retail package pickup dispatch request.",
+      "type": "object",
+      "properties": {
+        "customerId": { "type": "string" },
+        "contactName": { "type": "string" },
+        "contactPhone": { "type": "string" },
+        "pickupDate": { "type": "string" },
+        "readyTime": { "type": "string" },
+        "closeTime": { "type": "string" },
+        "preferredCarrier": { "type": "string" },
+        "totalWeightLbs": { "type": "number" },
+        "status": { "type": "string", "enum": ["scheduled", "assigned", "in_route", "completed", "cancelled"] }
+      },
+      "required": ["customerId", "contactName", "pickupDate", "status"]
+    },
+    "Invoice": {
+      "title": "Invoice",
+      "description": "Billing record for shipping, mailbox, notary, and packing services.",
+      "type": "object",
+      "properties": {
+        "invoiceNumber": { "type": "string" },
+        "customerId": { "type": "string" },
+        "customerName": { "type": "string" },
+        "totalAmount": { "type": "number" },
+        "currency": { "type": "string" },
+        "status": { "type": "string", "enum": ["draft", "pending", "paid", "overdue", "voided"] },
+        "dueDate": { "type": "string" },
+        "paymentGateway": { "type": "string", "enum": ["paystack", "stripe", "cash", "pos"] }
+      },
+      "required": ["invoiceNumber", "customerId", "totalAmount", "status"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "entity": "User"
+    },
+    "/shipments/{shipmentId}": {
+      "entity": "Shipment"
+    },
+    "/appointments/{appointmentId}": {
+      "entity": "Appointment"
+    },
+    "/pickup_requests/{pickupId}": {
+      "entity": "PickupRequest"
+    },
+    "/invoices/{invoiceId}": {
+      "entity": "Invoice"
+    }
+  }
+}

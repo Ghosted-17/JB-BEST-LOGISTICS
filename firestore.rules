@@ -1,0 +1,149 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // --------------------------------------------------------------------------
+    // Helper Functions: Authentication & RBAC
+    // --------------------------------------------------------------------------
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && (
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         getUserData().role == 'admin') ||
+        request.auth.token.role == 'admin'
+      );
+    }
+
+    function isAssociate() {
+      return isAuthenticated() && (
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         getUserData().role == 'associate') ||
+        request.auth.token.role == 'associate'
+      );
+    }
+
+    function isAssociateOrAdmin() {
+      return isAdmin() || isAssociate();
+    }
+
+    // --------------------------------------------------------------------------
+    // Users Collection
+    // --------------------------------------------------------------------------
+    match /users/{userId} {
+      // Users can read their own profile; Associates and Admins can view all users
+      allow read: if isOwner(userId) || isAssociateOrAdmin();
+
+      // Normal signup creates customer role; cannot grant self admin privileges
+      allow create: if isOwner(userId) && (
+        !('role' in request.resource.data) ||
+        request.resource.data.role == 'customer'
+      ) || isAdmin();
+
+      // Users can edit basic profile details without mutating role; Admin can alter roles
+      allow update: if (
+        isOwner(userId) &&
+        request.resource.data.role == resource.data.role
+      ) || isAdmin();
+
+      // Only Admin can delete users
+      allow delete: if isAdmin();
+    }
+
+    // --------------------------------------------------------------------------
+    // Shipments Collection (Public Tracking by Tracking ID)
+    // --------------------------------------------------------------------------
+    match /shipments/{shipmentId} {
+      // Tracking is a public retail feature: customers track by ID without login
+      allow read: if true;
+
+      // Only warehouse associates and admins create/update shipment statuses & GPS coordinates
+      allow create, update: if isAssociateOrAdmin();
+      allow delete: if isAdmin();
+
+      // Subcollection for specific tracking logs
+      match /logs/{logId} {
+        allow read: if true;
+        allow write: if isAssociateOrAdmin();
+      }
+    }
+
+    // --------------------------------------------------------------------------
+    // Appointments Booking (Notary, Mailbox onboarding, Custom packing)
+    // --------------------------------------------------------------------------
+    match /appointments/{appointmentId} {
+      // Customers read their own appointments; staff reads all appointments
+      allow read: if (isAuthenticated() && resource.data.customerId == request.auth.uid) || isAssociateOrAdmin();
+
+      // Authenticated customers can book appointments bound to their UID
+      allow create: if isAuthenticated() && request.resource.data.customerId == request.auth.uid;
+
+      // Customers can cancel their appointment; Staff can update status or reschedule
+      allow update: if isAssociateOrAdmin() || (
+        isAuthenticated() &&
+        resource.data.customerId == request.auth.uid &&
+        request.resource.data.status in ['cancelled']
+      );
+
+      allow delete: if isAdmin();
+    }
+
+    // --------------------------------------------------------------------------
+    // Package Pickup Scheduling
+    // --------------------------------------------------------------------------
+    match /pickup_requests/{pickupId} {
+      // Client reads their own pickup tickets; staff reads all pickups
+      allow read: if (isAuthenticated() && resource.data.customerId == request.auth.uid) || isAssociateOrAdmin();
+
+      // Client can submit a pickup request
+      allow create: if isAuthenticated() && request.resource.data.customerId == request.auth.uid;
+
+      // Client can modify pending pickup; Staff can reassign drivers or mark completed
+      allow update: if isAssociateOrAdmin() || (
+        isAuthenticated() &&
+        resource.data.customerId == request.auth.uid &&
+        resource.data.status == 'scheduled'
+      );
+
+      allow delete: if isAdmin();
+    }
+
+    // --------------------------------------------------------------------------
+    // Invoices & Billing
+    // (Note: Backend Webhooks like Paystack use Firebase Admin SDK which bypasses rules)
+    // --------------------------------------------------------------------------
+    match /invoices/{invoiceId} {
+      // Client can view invoices addressed to their customer ID
+      allow read: if (isAuthenticated() && resource.data.customerId == request.auth.uid) || isAssociateOrAdmin();
+
+      // Invoices can only be created or modified by Associates or Admins
+      allow create, update: if isAssociateOrAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // --------------------------------------------------------------------------
+    // Mailbox Rentals & Freight Consultations
+    // --------------------------------------------------------------------------
+    match /mailbox_rentals/{mailboxId} {
+      allow read: if (isAuthenticated() && resource.data.customerId == request.auth.uid) || isAssociateOrAdmin();
+      allow write: if isAssociateOrAdmin();
+    }
+
+    // Fallback rule for any unmapped collections
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
