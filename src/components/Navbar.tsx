@@ -19,7 +19,6 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { UserRole } from "../types";
-import { login, register } from "../lib/api";
 
 interface NavbarProps {
   activeTab: string;
@@ -28,6 +27,7 @@ interface NavbarProps {
   setPortal: (portal: "consumer" | "staff" | "admin") => void;
   userRole?: UserRole;
   setUserRole?: (role: UserRole) => void;
+  onOpenAuth: () => void;
   onOpenArchitecture: () => void;
 }
 
@@ -37,6 +37,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   portal,
   setPortal,
   setUserRole,
+  onOpenAuth,
   onOpenArchitecture,
 }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -46,8 +47,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [authRole, setAuthRole] = useState<"customer" | "staff" | "admin">(
     "customer",
   );
-  const [authError, setAuthError] = useState("");
-  const [isSubmittingAuth, setIsSubmittingAuth] = useState(false);
+  const [authError] = useState("");
+  const [isSubmittingAuth] = useState(false);
 
   const navLinks = [
     {
@@ -130,87 +131,22 @@ export const Navbar: React.FC<NavbarProps> = ({
     setActiveTab(tabId);
     setIsMobileMenuOpen(false);
     setIsServicesMenuOpen(false);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handleSwitchPortal = (target: "consumer" | "staff" | "admin") => {
     setPortal(target);
     setIsMobileMenuOpen(false);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const handleAuthSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+  const handleAuthSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setAuthError("");
-    setIsSubmittingAuth(true);
-    const form = new FormData(event.currentTarget);
-    try {
-      const response =
-        isSignUp && authRole === "customer"
-          ? await register(
-              String(form.get("name") || ""),
-              String(form.get("email") || ""),
-              String(form.get("password") || ""),
-            )
-          : await login(
-              String(form.get("email") || ""),
-              String(form.get("password") || ""),
-            );
-      localStorage.setItem("jb_best_token", response.token);
-      const role = response.user.role;
-      setUserRole?.(
-        role === "rider" || role === "warehouse" ? "associate" : role,
-      );
-      setPortal(
-        role === "customer"
-          ? "consumer"
-          : role === "rider" || role === "warehouse"
-            ? "staff"
-            : "admin",
-      );
-      setIsAuthOpen(false);
-      setIsMobileMenuOpen(false);
-    } catch (error) {
-      setAuthError(
-        error instanceof Error ? error.message : "Unable to authenticate",
-      );
-    } finally {
-      setIsSubmittingAuth(false);
-    }
   };
 
   return (
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-gray-200/80 shadow-2xs">
       {/* Light, Minimal Utility Strip & Portal Switcher */}
-      <div className="bg-slate-50 border-b border-gray-100 text-xs text-slate-600 px-4 sm:px-6 lg:px-8 py-1.5">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4">
-          <div className="flex items-center gap-2 text-xs truncate">
-            <MapPin className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-            <span className="truncate">2450 Piedmont Rd NE, Atlanta, GA</span>
-            <span className="hidden sm:inline text-slate-300">•</span>
-            <span className="hidden sm:inline text-slate-500">
-              Carrier Cutoff: 5:30 PM
-            </span>
-          </div>
-
-          {/* Contact & Account Access */}
-          <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0 text-xs">
-            <a
-              href="tel:+14045550199"
-              className="font-semibold text-slate-800 hover:text-blue-600 transition flex items-center gap-1.5"
-            >
-              <Phone className="w-3 h-3 text-blue-600" />
-              <span>(404) 555-0199</span>
-            </a>
-
-            <button
-              onClick={() => setIsAuthOpen(true)}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-1.5 font-semibold text-white transition hover:bg-blue-700 cursor-pointer"
-            >
-              <User className="h-3.5 w-3.5" />
-              <span>Log in</span>
-            </button>
-          </div>
-        </div>
-      </div>
 
       {/* Main Clean Header */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -323,11 +259,11 @@ export const Navbar: React.FC<NavbarProps> = ({
           <div className="flex items-center gap-3">
             {portal === "consumer" ? (
               <button
-                onClick={() => handleNavClick("track")}
-                className="hidden sm:inline-flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-4 py-2 rounded-xl shadow-2xs transition cursor-pointer"
+                onClick={onOpenAuth}
+                className="hidden sm:inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-1.5 font-semibold text-white transition hover:bg-blue-700 cursor-pointer"
               >
-                <Search className="w-3.5 h-3.5" />
-                <span>Track Package</span>
+                <User className="h-3.5 w-3.5" />
+                <span>Log in</span>
               </button>
             ) : (
               <button
@@ -433,7 +369,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           <div className="pt-3 border-t border-slate-100 space-y-2 text-center text-xs text-slate-500">
             <button
-              onClick={() => setIsAuthOpen(true)}
+              onClick={onOpenAuth}
               className="w-full py-2 px-3 bg-slate-900 hover:bg-blue-700 text-white rounded-xl font-semibold flex items-center justify-center gap-2 cursor-pointer"
             >
               <User className="w-3.5 h-3.5" />
@@ -450,7 +386,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
       )}
 
-      {isAuthOpen && (
+      {false && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 px-4 py-6 backdrop-blur-sm">
           <div
             className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl sm:p-8"
