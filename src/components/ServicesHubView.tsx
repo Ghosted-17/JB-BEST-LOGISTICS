@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   Truck,
   Box,
@@ -15,7 +15,7 @@ import {
   ChevronDown,
   ChevronUp,
   HelpCircle,
-} from 'lucide-react';
+} from "lucide-react";
 
 interface ServicesHubViewProps {
   onSelectService: (service: string) => void;
@@ -32,20 +32,20 @@ export const ServicesHubView: React.FC<ServicesHubViewProps> = ({
 
   const faqs = [
     {
-      q: 'Do you accept pre-printed return labels from Amazon, UPS, or FedEx?',
-      a: 'Yes! You can drop off pre-labeled packages for FedEx, UPS, and USPS at no extra charge. We provide printed or digital drop-off receipts instantly.',
+      q: "Do you accept pre-printed return labels from Amazon, UPS, or FedEx?",
+      a: "Yes! You can drop off pre-labeled packages for FedEx, UPS, and USPS at no extra charge. We provide printed or digital drop-off receipts instantly.",
     },
     {
-      q: 'What is the daily cutoff time for packages to ship out today?',
-      a: 'Our daily carrier pickups are at 5:30 PM Monday through Friday. Packages dropped off or picked up before 5:30 PM depart on the evening carrier trucks.',
+      q: "What is the daily cutoff time for packages to ship out today?",
+      a: "Our daily carrier pickups are at 5:30 PM Monday through Friday. Packages dropped off or picked up before 5:30 PM depart on the evening carrier trucks.",
     },
     {
-      q: 'Can I use your mailbox service as my official business address?',
-      a: 'Absolutely. Unlike a P.O. Box, our private mailboxes provide a real Georgia physical street address (2450 Piedmont Rd NE, Suite #___) approved for Georgia LLC filings, banking, and commercial licensing.',
+      q: "Can I use your mailbox service as my official business address?",
+      a: "Absolutely. Unlike a P.O. Box, our private mailboxes provide a real Georgia physical street address (2450 Piedmont Rd NE, Suite #___) approved for Georgia LLC filings, banking, and commercial licensing.",
     },
     {
-      q: 'Do I need an appointment for the Notary Public?',
-      a: 'Walk-ins are always welcome during business hours! You can also book a guaranteed 15-minute appointment online if you are on a tight schedule.',
+      q: "Do I need an appointment for the Notary Public?",
+      a: "Walk-ins are always welcome during business hours! You can also book a guaranteed 15-minute appointment online if you are on a tight schedule.",
     },
   ];
 
@@ -62,13 +62,59 @@ export const ServicesHubView: React.FC<ServicesHubViewProps> = ({
               Compare & Ship with Leading Carriers
             </h2>
             <p className="text-sm text-gray-500 mt-1">
-              We compare prices across FedEx, UPS, and USPS to find you the best rate and fastest route.
+              We compare prices across FedEx, UPS, and USPS to find you the best
+              rate and fastest route.
             </p>
           </div>
           <div className="inline-flex items-center gap-2 text-xs font-semibold text-emerald-800 bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-200 shrink-0">
             <Clock className="w-3.5 h-3.5 text-emerald-600" />
             <span>Daily Pickup Cutoff: 5:30 PM EST</span>
           </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <article className="group relative h-36 overflow-hidden rounded-2xl animate-fade-up">
+            <img
+              src="https://images.unsplash.com/photo-1566576912321-d58ddd7a6088?auto=format&fit=crop&w=700&q=80"
+              alt="Carefully packed shipping boxes"
+              className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/10 to-transparent" />
+            <div className="absolute inset-x-4 bottom-3 text-white">
+              <h3 className="text-sm font-bold">Packed with care</h3>
+              <p className="mt-0.5 text-xs text-white/80">
+                Fragile, oversized, and everyday items.
+              </p>
+            </div>
+          </article>
+          <article className="group relative h-36 overflow-hidden rounded-2xl animate-fade-up animation-delay-100">
+            <img
+              src="https://images.unsplash.com/photo-1605733160314-4fc7dac4bb16?auto=format&fit=crop&w=700&q=80"
+              alt="Cargo containers ready for transport"
+              className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/10 to-transparent" />
+            <div className="absolute inset-x-4 bottom-3 text-white">
+              <h3 className="text-sm font-bold">Ready for the road</h3>
+              <p className="mt-0.5 text-xs text-white/80">
+                Reliable handoff from counter to carrier.
+              </p>
+            </div>
+          </article>
+          <article className="group relative h-36 overflow-hidden rounded-2xl animate-fade-up animation-delay-200">
+            <img
+              src="https://images.unsplash.com/photo-1580674684081-7617fbf3d745?auto=format&fit=crop&w=700&q=80"
+              alt="Shipping boxes prepared for delivery"
+              className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/10 to-transparent" />
+            <div className="absolute inset-x-4 bottom-3 text-white">
+              <h3 className="text-sm font-bold">Delivered worldwide</h3>
+              <p className="mt-0.5 text-xs text-white/80">
+                Track every step with confidence.
+              </p>
+            </div>
+          </article>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
@@ -79,9 +125,12 @@ export const ServicesHubView: React.FC<ServicesHubViewProps> = ({
                 FedEx
               </div>
               <div>
-                <h3 className="text-lg font-bold text-gray-900">FedEx Express & Ground</h3>
+                <h3 className="text-lg font-bold text-gray-900">
+                  FedEx Express & Ground
+                </h3>
                 <p className="text-xs text-gray-500 mt-1 leading-relaxed">
-                  Best for guaranteed overnight delivery, priority documents, and global international air.
+                  Best for guaranteed overnight delivery, priority documents,
+                  and global international air.
                 </p>
               </div>
               <ul className="text-xs text-gray-600 space-y-2 pt-3 border-t border-gray-100">
@@ -115,9 +164,12 @@ export const ServicesHubView: React.FC<ServicesHubViewProps> = ({
                 UPS
               </div>
               <div>
-                <h3 className="text-lg font-bold text-gray-900">UPS Authorized Service</h3>
+                <h3 className="text-lg font-bold text-gray-900">
+                  UPS Authorized Service
+                </h3>
                 <p className="text-xs text-gray-500 mt-1 leading-relaxed">
-                  Dependable ground shipping across all 50 states, Next Day Air, and fast package returns.
+                  Dependable ground shipping across all 50 states, Next Day Air,
+                  and fast package returns.
                 </p>
               </div>
               <ul className="text-xs text-gray-600 space-y-2 pt-3 border-t border-gray-100">
@@ -151,9 +203,12 @@ export const ServicesHubView: React.FC<ServicesHubViewProps> = ({
                 USPS
               </div>
               <div>
-                <h3 className="text-lg font-bold text-gray-900">USPS Priority Mail</h3>
+                <h3 className="text-lg font-bold text-gray-900">
+                  USPS Priority Mail
+                </h3>
                 <p className="text-xs text-gray-500 mt-1 leading-relaxed">
-                  Cost-effective flat-rate boxes, certified mail, postage stamps, and residential delivery.
+                  Cost-effective flat-rate boxes, certified mail, postage
+                  stamps, and residential delivery.
                 </p>
               </div>
               <ul className="text-xs text-gray-600 space-y-2 pt-3 border-t border-gray-100">
@@ -187,15 +242,18 @@ export const ServicesHubView: React.FC<ServicesHubViewProps> = ({
                 Courier
               </div>
               <div>
-                <h3 className="text-lg font-bold text-gray-900">Doorstep & Heavy Freight</h3>
+                <h3 className="text-lg font-bold text-gray-900">
+                  Doorstep & Heavy Freight
+                </h3>
                 <p className="text-xs text-gray-500 mt-1 leading-relaxed">
-                  Same-day Atlanta courier van service, heavy freight, palletizing, and bulk cargo.
+                  Same-day courier service, heavy freight, palletizing, and bulk
+                  cargo for domestic and international shipments.
                 </p>
               </div>
               <ul className="text-xs text-gray-600 space-y-2 pt-3 border-t border-gray-100">
                 <li className="flex items-center gap-2">
                   <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                  <span>Door-to-door Atlanta delivery</span>
+                  <span>Door-to-door worldwide delivery</span>
                 </li>
                 <li className="flex items-center gap-2">
                   <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
@@ -223,13 +281,16 @@ export const ServicesHubView: React.FC<ServicesHubViewProps> = ({
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-100">
           <div>
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-amber-800 text-xs font-semibold border border-amber-200">
-              <Mail className="w-3.5 h-3.5" /> Real Atlanta Street Address (Not a P.O. Box)
+              <Mail className="w-3.5 h-3.5" /> Real Street Address (Not a P.O.
+              Box)
             </div>
             <h3 className="text-2xl font-display font-bold text-gray-900 mt-2">
               Private Mailbox Rentals
             </h3>
             <p className="text-sm text-gray-500 mt-1">
-              Give your business a prestigious Atlanta street address. We accept deliveries from all carriers and send text alerts when packages arrive.
+              Give your business a professional street address. We accept
+              deliveries from all carriers and send text alerts when packages
+              arrive.
             </p>
           </div>
           <button
@@ -247,10 +308,12 @@ export const ServicesHubView: React.FC<ServicesHubViewProps> = ({
               Personal / Small
             </span>
             <div className="text-3xl font-bold text-gray-900">
-              $25 <span className="text-sm font-normal text-gray-500">/ month</span>
+              $25{" "}
+              <span className="text-sm font-normal text-gray-500">/ month</span>
             </div>
             <p className="text-xs text-gray-600 leading-relaxed">
-              Great for personal letters, bank statements, and small package deliveries.
+              Great for personal letters, bank statements, and small package
+              deliveries.
             </p>
             <ul className="text-xs text-gray-600 space-y-2 pt-3 border-t border-gray-200/60">
               <li className="flex items-center gap-2">
@@ -277,10 +340,12 @@ export const ServicesHubView: React.FC<ServicesHubViewProps> = ({
               Business / Medium
             </span>
             <div className="text-3xl font-bold text-gray-900">
-              $45 <span className="text-sm font-normal text-gray-500">/ month</span>
+              $45{" "}
+              <span className="text-sm font-normal text-gray-500">/ month</span>
             </div>
             <p className="text-xs text-gray-600 leading-relaxed">
-              Designed for Georgia LLCs, remote businesses, and regular package deliveries.
+              Designed for Georgia LLCs, remote businesses, and regular package
+              deliveries.
             </p>
             <ul className="text-xs text-gray-600 space-y-2 pt-3 border-t border-blue-200/60">
               <li className="flex items-center gap-2">
@@ -304,10 +369,12 @@ export const ServicesHubView: React.FC<ServicesHubViewProps> = ({
               Corporate / Large
             </span>
             <div className="text-3xl font-bold text-gray-900">
-              $75 <span className="text-sm font-normal text-gray-500">/ month</span>
+              $75{" "}
+              <span className="text-sm font-normal text-gray-500">/ month</span>
             </div>
             <p className="text-xs text-gray-600 leading-relaxed">
-              Ideal for multi-person teams, frequent large boxes, and high-volume mail intake.
+              Ideal for multi-person teams, frequent large boxes, and
+              high-volume mail intake.
             </p>
             <ul className="text-xs text-gray-600 space-y-2 pt-3 border-t border-gray-200/60">
               <li className="flex items-center gap-2">
@@ -337,7 +404,8 @@ export const ServicesHubView: React.FC<ServicesHubViewProps> = ({
             Walk-In Services Available Daily
           </h2>
           <p className="text-sm text-gray-500 mt-1">
-            No appointment required for quick services, or book online for zero wait time.
+            No appointment required for quick services, or book online for zero
+            wait time.
           </p>
         </div>
 
@@ -348,11 +416,16 @@ export const ServicesHubView: React.FC<ServicesHubViewProps> = ({
               <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-700 flex items-center justify-center">
                 <FileCheck className="w-5 h-5" />
               </div>
-              <h4 className="text-base font-bold text-gray-900">Georgia Notary Public</h4>
+              <h4 className="text-base font-bold text-gray-900">
+                Georgia Notary Public
+              </h4>
               <p className="text-xs text-gray-500 leading-relaxed">
-                Licensed Georgia notary on duty for affidavits, real estate deeds, wills, power of attorney, and vehicle titles.
+                Licensed Georgia notary on duty for affidavits, real estate
+                deeds, wills, power of attorney, and vehicle titles.
               </p>
-              <p className="text-xs font-bold text-blue-700 pt-1">$10 per signature</p>
+              <p className="text-xs font-bold text-blue-700 pt-1">
+                $10 per signature
+              </p>
             </div>
             <button
               onClick={onBookAppointment}
@@ -368,11 +441,16 @@ export const ServicesHubView: React.FC<ServicesHubViewProps> = ({
               <div className="w-10 h-10 rounded-2xl bg-amber-50 text-amber-700 flex items-center justify-center">
                 <Box className="w-5 h-5" />
               </div>
-              <h4 className="text-base font-bold text-gray-900">Custom Packing & Boxes</h4>
+              <h4 className="text-base font-bold text-gray-900">
+                Custom Packing & Boxes
+              </h4>
               <p className="text-xs text-gray-500 leading-relaxed">
-                Expert cushioning for fragile items, art, electronics, and heavy machinery. Over 40 standard box sizes in stock.
+                Expert cushioning for fragile items, art, electronics, and heavy
+                machinery. Over 40 standard box sizes in stock.
               </p>
-              <p className="text-xs font-bold text-amber-800 pt-1">Boxes from $2.50</p>
+              <p className="text-xs font-bold text-amber-800 pt-1">
+                Boxes from $2.50
+              </p>
             </div>
             <button
               onClick={onBookAppointment}
@@ -388,11 +466,16 @@ export const ServicesHubView: React.FC<ServicesHubViewProps> = ({
               <div className="w-10 h-10 rounded-2xl bg-purple-50 text-purple-700 flex items-center justify-center">
                 <Camera className="w-5 h-5" />
               </div>
-              <h4 className="text-base font-bold text-gray-900">Passport & ID Photos</h4>
+              <h4 className="text-base font-bold text-gray-900">
+                Passport & ID Photos
+              </h4>
               <p className="text-xs text-gray-500 leading-relaxed">
-                State Department compliant 2x2 photos for US Passports, International visas, corporate badges, and concealed permits.
+                State Department compliant 2x2 photos for US Passports,
+                International visas, corporate badges, and concealed permits.
               </p>
-              <p className="text-xs font-bold text-purple-800 pt-1">$15 for 2 prints</p>
+              <p className="text-xs font-bold text-purple-800 pt-1">
+                $15 for 2 prints
+              </p>
             </div>
             <button
               onClick={onBookAppointment}
@@ -408,9 +491,12 @@ export const ServicesHubView: React.FC<ServicesHubViewProps> = ({
               <div className="w-10 h-10 rounded-2xl bg-rose-50 text-rose-700 flex items-center justify-center">
                 <Scissors className="w-5 h-5" />
               </div>
-              <h4 className="text-base font-bold text-gray-900">Secure Document Shredding</h4>
+              <h4 className="text-base font-bold text-gray-900">
+                Secure Document Shredding
+              </h4>
               <p className="text-xs text-gray-500 leading-relaxed">
-                Locked console disposal for confidential tax records, bank statements, and legal files. HIPAA & FACTA compliant.
+                Locked console disposal for confidential tax records, bank
+                statements, and legal files. HIPAA & FACTA compliant.
               </p>
               <p className="text-xs font-bold text-rose-800 pt-1">$1.49 / lb</p>
             </div>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   Calendar as CalendarIcon,
   Clock,
@@ -11,8 +11,8 @@ import {
   Key,
   Truck,
   HelpCircle,
-} from 'lucide-react';
-import { Appointment, AppointmentServiceType } from '../types';
+} from "lucide-react";
+import { Appointment, AppointmentServiceType } from "../types";
 
 interface AppointmentBookingViewProps {
   appointments: Appointment[];
@@ -21,65 +21,72 @@ interface AppointmentBookingViewProps {
 
 const SERVICES = [
   {
-    id: 'notary_public' as AppointmentServiceType,
-    title: 'Georgia Notary Public',
-    duration: '15 mins',
-    price: '$10 / seal',
+    id: "notary_public" as AppointmentServiceType,
+    title: "Georgia Notary Public",
+    duration: "15 mins",
+    price: "$10 / seal",
     icon: FileCheck,
-    desc: 'Official notarization for deeds, powers of attorney, auto titles, and affidavits. Walk-ins also welcome.',
-    checklist: 'Bring a valid government-issued photo ID (Driver License or Passport) and leave documents unsigned until you arrive.',
+    desc: "Official notarization for deeds, powers of attorney, auto titles, and affidavits. Walk-ins also welcome.",
+    checklist:
+      "Bring a valid government-issued photo ID (Driver License or Passport) and leave documents unsigned until you arrive.",
   },
   {
-    id: 'mailbox_rental' as AppointmentServiceType,
-    title: 'Private Mailbox Setup',
-    duration: '15 mins',
-    price: 'Free setup',
+    id: "mailbox_rental" as AppointmentServiceType,
+    title: "Private Mailbox Setup",
+    duration: "15 mins",
+    price: "Free setup",
     icon: Key,
-    desc: 'Activate your new Atlanta street address, pick your mailbox number, and receive your 24/7 lobby key fob.',
-    checklist: 'Bring 2 forms of identification (e.g., Driver License + Vehicle Registration or Lease Agreement).',
+    desc: "Activate your private street address, pick your mailbox number, and receive your 24/7 lobby key fob.",
+    checklist:
+      "Bring 2 forms of identification (e.g., Driver License + Vehicle Registration or Lease Agreement).",
   },
   {
-    id: 'custom_packing' as AppointmentServiceType,
-    title: 'Fragile Item & Art Packing',
-    duration: '20 mins',
-    price: 'Free evaluation',
+    id: "custom_packing" as AppointmentServiceType,
+    title: "Fragile Item & Art Packing",
+    duration: "20 mins",
+    price: "Free evaluation",
     icon: Box,
-    desc: 'Bring in delicate art, china, antiques, or electronics for custom box sizing and foam cushioning.',
-    checklist: 'Bring your item(s) to our packing counter. We provide all boxes, bubble cushioning, and tape.',
+    desc: "Bring in delicate art, china, antiques, or electronics for custom box sizing and foam cushioning.",
+    checklist:
+      "Bring your item(s) to our packing counter. We provide all boxes, bubble cushioning, and tape.",
   },
   {
-    id: 'freight_consultation' as AppointmentServiceType,
-    title: 'Business & Freight Shipping',
-    duration: '30 mins',
-    price: 'Free quote',
+    id: "freight_consultation" as AppointmentServiceType,
+    title: "Business & Freight Shipping",
+    duration: "30 mins",
+    price: "Free quote",
     icon: Truck,
-    desc: 'Discuss recurring commercial shipments, pallet freight, or multi-location package distribution.',
-    checklist: 'Bring estimated weight, dimensions, and destination zip codes if available.',
+    desc: "Discuss recurring commercial shipments, pallet freight, or multi-location package distribution.",
+    checklist:
+      "Bring estimated weight, dimensions, and destination zip codes if available.",
   },
 ];
 
 const TIME_SLOTS = [
-  '09:00 AM',
-  '10:00 AM',
-  '11:30 AM',
-  '01:30 PM',
-  '03:00 PM',
-  '04:30 PM',
-  '05:30 PM',
+  "09:00 AM",
+  "10:00 AM",
+  "11:30 AM",
+  "01:30 PM",
+  "03:00 PM",
+  "04:30 PM",
+  "05:30 PM",
 ];
 
 export const AppointmentBookingView: React.FC<AppointmentBookingViewProps> = ({
   appointments,
   onAddAppointment,
 }) => {
-  const [selectedService, setSelectedService] = useState<AppointmentServiceType>('notary_public');
-  const [selectedDate, setSelectedDate] = useState('2026-09-08');
-  const [selectedSlot, setSelectedSlot] = useState('10:00 AM');
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
-  const [notes, setNotes] = useState('');
-  const [confirmedTicket, setConfirmedTicket] = useState<Appointment | null>(null);
+  const [selectedService, setSelectedService] =
+    useState<AppointmentServiceType>("notary_public");
+  const [selectedDate, setSelectedDate] = useState("2026-09-08");
+  const [selectedSlot, setSelectedSlot] = useState("10:00 AM");
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [notes, setNotes] = useState("");
+  const [confirmedTicket, setConfirmedTicket] = useState<Appointment | null>(
+    null,
+  );
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -95,21 +102,22 @@ export const AppointmentBookingView: React.FC<AppointmentBookingViewProps> = ({
       appointmentDate: selectedDate,
       timeSlot: selectedSlot,
       notes,
-      status: 'confirmed',
+      status: "confirmed",
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
 
     onAddAppointment(newApt);
     setConfirmedTicket(newApt);
-    setName('');
-    setEmail('');
-    setPhone('');
-    setNotes('');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setName("");
+    setEmail("");
+    setPhone("");
+    setNotes("");
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const currentServiceObj = SERVICES.find((s) => s.id === selectedService) || SERVICES[0];
+  const currentServiceObj =
+    SERVICES.find((s) => s.id === selectedService) || SERVICES[0];
 
   return (
     <div className="space-y-8">
@@ -123,7 +131,8 @@ export const AppointmentBookingView: React.FC<AppointmentBookingViewProps> = ({
             Book an In-Store Appointment
           </h2>
           <p className="text-sm text-gray-500 mt-1">
-            Reserve dedicated one-on-one time with our Georgia Commissioned Notary, packing team, or mailbox staff for zero wait time.
+            Reserve dedicated one-on-one time with our Georgia Commissioned
+            Notary, packing team, or mailbox staff for zero wait time.
           </p>
         </div>
       </div>
@@ -139,10 +148,13 @@ export const AppointmentBookingView: React.FC<AppointmentBookingViewProps> = ({
               Appointment Confirmed!
             </h3>
             <p className="text-sm text-emerald-800">
-              We have reserved your time for <strong>{confirmedTicket.appointmentDate}</strong> at <strong>{confirmedTicket.timeSlot}</strong>.
+              We have reserved your time for{" "}
+              <strong>{confirmedTicket.appointmentDate}</strong> at{" "}
+              <strong>{confirmedTicket.timeSlot}</strong>.
             </p>
             <p className="text-xs text-emerald-700 pt-1">
-              Store Address: 2450 Piedmont Rd NE, Atlanta, GA 30324 • Confirmation ID: #{confirmedTicket.id}
+              Store Address: 2450 Piedmont Rd NE, Atlanta, GA 30324 •
+              Confirmation ID: #{confirmedTicket.id}
             </p>
           </div>
         </div>
@@ -174,19 +186,27 @@ export const AppointmentBookingView: React.FC<AppointmentBookingViewProps> = ({
                     onClick={() => setSelectedService(s.id)}
                     className={`p-4 rounded-2xl border text-left transition cursor-pointer flex flex-col justify-between ${
                       isSelected
-                        ? 'border-blue-600 bg-blue-50/70 shadow-xs ring-2 ring-blue-100'
-                        : 'border-gray-200 hover:border-gray-300 bg-white'
+                        ? "border-blue-600 bg-blue-50/70 shadow-xs ring-2 ring-blue-100"
+                        : "border-gray-200 hover:border-gray-300 bg-white"
                     }`}
                   >
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
-                        <div className={`p-2 rounded-xl ${isSelected ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'}`}>
+                        <div
+                          className={`p-2 rounded-xl ${isSelected ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-700"}`}
+                        >
                           <Icon className="w-4 h-4" />
                         </div>
-                        <span className="text-xs font-semibold text-gray-700">{s.price}</span>
+                        <span className="text-xs font-semibold text-gray-700">
+                          {s.price}
+                        </span>
                       </div>
-                      <h4 className="font-bold text-sm text-gray-900">{s.title}</h4>
-                      <p className="text-xs text-gray-500 leading-relaxed">{s.desc}</p>
+                      <h4 className="font-bold text-sm text-gray-900">
+                        {s.title}
+                      </h4>
+                      <p className="text-xs text-gray-500 leading-relaxed">
+                        {s.desc}
+                      </p>
                     </div>
                   </button>
                 );
@@ -205,7 +225,9 @@ export const AppointmentBookingView: React.FC<AppointmentBookingViewProps> = ({
 
             <div className="space-y-3">
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Appointment Date</label>
+                <label className="block text-xs font-medium text-gray-600 mb-1">
+                  Appointment Date
+                </label>
                 <input
                   type="date"
                   value={selectedDate}
@@ -215,7 +237,9 @@ export const AppointmentBookingView: React.FC<AppointmentBookingViewProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-2">Available Time Slots</label>
+                <label className="block text-xs font-medium text-gray-600 mb-2">
+                  Available Time Slots
+                </label>
                 <div className="flex flex-wrap gap-2">
                   {TIME_SLOTS.map((slot) => (
                     <button
@@ -224,8 +248,8 @@ export const AppointmentBookingView: React.FC<AppointmentBookingViewProps> = ({
                       onClick={() => setSelectedSlot(slot)}
                       className={`px-3.5 py-2 rounded-xl text-xs font-semibold border transition cursor-pointer ${
                         selectedSlot === slot
-                          ? 'bg-blue-600 border-blue-600 text-white shadow-xs'
-                          : 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100'
+                          ? "bg-blue-600 border-blue-600 text-white shadow-xs"
+                          : "bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100"
                       }`}
                     >
                       {slot}
@@ -247,7 +271,9 @@ export const AppointmentBookingView: React.FC<AppointmentBookingViewProps> = ({
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Full Name *</label>
+                <label className="block text-xs font-medium text-gray-600 mb-1">
+                  Full Name *
+                </label>
                 <input
                   type="text"
                   required
@@ -259,7 +285,9 @@ export const AppointmentBookingView: React.FC<AppointmentBookingViewProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Phone Number *</label>
+                <label className="block text-xs font-medium text-gray-600 mb-1">
+                  Phone Number *
+                </label>
                 <input
                   type="tel"
                   required
@@ -272,7 +300,9 @@ export const AppointmentBookingView: React.FC<AppointmentBookingViewProps> = ({
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Email Address *</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">
+                Email Address *
+              </label>
               <input
                 type="email"
                 required
@@ -314,10 +344,12 @@ export const AppointmentBookingView: React.FC<AppointmentBookingViewProps> = ({
                 <strong>Address:</strong> 2450 Piedmont Rd NE, Atlanta, GA 30324
               </p>
               <p>
-                <strong>Parking:</strong> Free customer parking right in front of the store entrance.
+                <strong>Parking:</strong> Free customer parking right in front
+                of the store entrance.
               </p>
               <p>
-                <strong>Walk-ins:</strong> Walk-ins are always welcomed during normal store hours.
+                <strong>Walk-ins:</strong> Walk-ins are always welcomed during
+                normal store hours.
               </p>
             </div>
           </div>
@@ -325,7 +357,9 @@ export const AppointmentBookingView: React.FC<AppointmentBookingViewProps> = ({
           {/* Scheduled Appointments Preview */}
           <div className="bg-white rounded-3xl border border-gray-200/80 p-6 shadow-xs space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-gray-100">
-              <h4 className="font-bold text-sm text-gray-900">Upcoming Appointments</h4>
+              <h4 className="font-bold text-sm text-gray-900">
+                Upcoming Appointments
+              </h4>
               <span className="text-xs font-semibold text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded-full">
                 {appointments.length} booked
               </span>
@@ -333,15 +367,22 @@ export const AppointmentBookingView: React.FC<AppointmentBookingViewProps> = ({
 
             <div className="space-y-3">
               {appointments.slice(0, 3).map((a) => (
-                <div key={a.id} className="p-3.5 rounded-2xl bg-gray-50 border border-gray-200/60 text-xs space-y-1">
+                <div
+                  key={a.id}
+                  className="p-3.5 rounded-2xl bg-gray-50 border border-gray-200/60 text-xs space-y-1"
+                >
                   <div className="flex items-center justify-between font-bold text-gray-900">
                     <span>{a.customerName}</span>
                     <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] uppercase font-bold">
                       {a.status}
                     </span>
                   </div>
-                  <p className="text-gray-500 capitalize">{a.serviceType.replace(/_/g, ' ')}</p>
-                  <p className="text-gray-400 text-[11px] pt-0.5">{a.appointmentDate} at {a.timeSlot}</p>
+                  <p className="text-gray-500 capitalize">
+                    {a.serviceType.replace(/_/g, " ")}
+                  </p>
+                  <p className="text-gray-400 text-[11px] pt-0.5">
+                    {a.appointmentDate} at {a.timeSlot}
+                  </p>
                 </div>
               ))}
             </div>
