@@ -85,44 +85,44 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   const serviceLinks = [
     {
-      label: "Shipping & Carriers",
-      desc: "FedEx, UPS, USPS and freight",
+      label: "Private Mailbox Rentals",
+      desc: "Real street address and secure mail handling",
       tab: "services",
     },
     {
-      label: "Private Mailbox Rental",
-      desc: "Secure mail and package receiving",
+      label: "Notary",
+      desc: "Document signing and legal certifications",
+      tab: "appointment",
+    },
+    {
+      label: "Livescan Fingerprinting",
+      desc: "Digital fingerprinting for background checks",
+      tab: "appointment",
+    },
+    {
+      label: "Shipping",
+      desc: "FedEx, UPS, USPS, and doorstep delivery",
       tab: "services",
     },
     {
-      label: "Custom Packing & Boxes",
-      desc: "Professional packing for every item",
+      label: "Passport Photos",
+      desc: "Professional travel and ID photo service",
       tab: "appointment",
     },
     {
-      label: "Notary Public",
-      desc: "Documents, signatures and certifications",
+      label: "Secure Document Shredding",
+      desc: "Confidential paper disposal and destruction",
       tab: "appointment",
     },
     {
-      label: "Passport & ID Photos",
-      desc: "Professional photos ready in minutes",
+      label: "Packing Supplies",
+      desc: "Boxes, tape, and protective shipping materials",
       tab: "appointment",
     },
     {
-      label: "Document Shredding",
-      desc: "Secure destruction for sensitive records",
+      label: "Fax Copies",
+      desc: "Document copies, scans, and fax services",
       tab: "appointment",
-    },
-    {
-      label: "Doorstep Pickup",
-      desc: "Collection from home or business",
-      tab: "pickup",
-    },
-    {
-      label: "Courier & Heavy Freight",
-      desc: "Oversized and commercial shipments",
-      tab: "pickup",
     },
   ];
 
@@ -193,7 +193,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                       <button
                         onClick={() => setIsServicesMenuOpen((open) => !open)}
                         aria-expanded={isServicesMenuOpen}
-                        className={`px-3.5 py-1.5 rounded-xl text-sm font-medium transition cursor-pointer flex items-center gap-1.5 ${
+                        className={`px-3.5 py-1.5 rounded-xl text-sm font-medium transition-all duration-200 ease-out cursor-pointer flex items-center gap-1.5 hover:-translate-y-0.5 ${
                           isActive || isServicesMenuOpen
                             ? "bg-blue-50 text-blue-700 font-bold shadow-2xs"
                             : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
@@ -201,18 +201,18 @@ export const Navbar: React.FC<NavbarProps> = ({
                       >
                         {item.label}
                         <ChevronDown
-                          className={`w-3.5 h-3.5 transition-transform ${isServicesMenuOpen ? "rotate-180" : ""}`}
+                          className={`w-3.5 h-3.5 transition-transform duration-200 ${isServicesMenuOpen ? "rotate-180" : ""}`}
                         />
                       </button>
 
                       {isServicesMenuOpen && (
-                        <div className="absolute left-1/2 top-full z-50 mt-3 w-[34rem] -translate-x-1/2 rounded-2xl border border-slate-200 bg-white p-3 shadow-xl">
+                        <div className="nav-panel absolute left-1/2 top-full z-50 mt-3 w-[34rem] -translate-x-1/2 rounded-2xl border border-slate-200 bg-white p-3 shadow-xl">
                           <div className="grid grid-cols-2 gap-1">
                             {serviceLinks.map((service) => (
                               <button
                                 key={service.label}
                                 onClick={() => handleNavClick(service.tab)}
-                                className="group rounded-xl p-3 text-left transition hover:bg-blue-50"
+                                className="group rounded-xl p-3 text-left transition-all duration-200 hover:-translate-y-0.5 hover:bg-blue-50"
                               >
                                 <div className="flex items-center justify-between gap-2">
                                   <span className="text-sm font-semibold text-slate-800 group-hover:text-blue-700">
@@ -235,7 +235,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   <button
                     key={item.id}
                     onClick={() => handleNavClick(item.id)}
-                    className={`px-3.5 py-1.5 rounded-xl text-sm font-medium transition cursor-pointer ${
+                    className={`px-3.5 py-1.5 rounded-xl text-sm font-medium transition-all duration-200 ease-out cursor-pointer hover:-translate-y-0.5 ${
                       isActive
                         ? "bg-blue-50 text-blue-700 font-bold shadow-2xs"
                         : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
@@ -258,13 +258,22 @@ export const Navbar: React.FC<NavbarProps> = ({
           {/* Right Action CTA & Mobile Menu Toggle */}
           <div className="flex items-center gap-3">
             {portal === "consumer" ? (
-              <button
-                onClick={onOpenAuth}
-                className="hidden sm:inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-1.5 font-semibold text-white transition hover:bg-blue-700 cursor-pointer"
-              >
-                <User className="h-3.5 w-3.5" />
-                <span>Log in</span>
-              </button>
+              <>
+                <a
+                  href="tel:+14045550199"
+                  className="hidden sm:inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 transition hover:bg-blue-100 cursor-pointer"
+                >
+                  <Phone className="h-3.5 w-3.5" />
+                  <span>Customer Care</span>
+                </a>
+                <button
+                  onClick={onOpenAuth}
+                  className="hidden sm:inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-1.5 font-semibold text-white transition hover:bg-blue-700 cursor-pointer"
+                >
+                  <User className="h-3.5 w-3.5" />
+                  <span>Log in</span>
+                </button>
+              </>
             ) : (
               <button
                 onClick={() => handleSwitchPortal("consumer")}
@@ -293,7 +302,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
       {/* Mobile Drawer */}
       {isMobileMenuOpen && (
-        <div className="md:hidden border-t border-gray-200 bg-white px-4 pt-3 pb-6 space-y-4 shadow-lg animate-in fade-in duration-150">
+        <div className="nav-panel md:hidden border-t border-gray-200 bg-white px-4 pt-3 pb-6 space-y-4 shadow-lg">
           {portal === "consumer" && (
             <div className="space-y-1">
               <div className="rounded-xl border border-blue-100 bg-blue-50/50 p-2">
@@ -377,10 +386,10 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
             <a
               href="tel:+14045550199"
-              className="w-full py-2 px-3 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl font-semibold flex items-center justify-center gap-2"
+              className="w-full py-2 px-3 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-xl font-semibold flex items-center justify-center gap-2"
             >
-              <Phone className="w-3.5 h-3.5 text-blue-600" />
-              <span>Call Store: (404) 555-0199</span>
+              <Phone className="w-3.5 h-3.5" />
+              <span>Customer Care: (404) 555-0199</span>
             </a>
           </div>
         </div>

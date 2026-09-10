@@ -46,8 +46,50 @@ h1, h2, h3, .font-display {
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
+@keyframes nav-menu-in {
+  from { opacity: 0; transform: translateY(-8px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes form-card-in {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes float-rise {
+  from { transform: translateY(0); }
+  to { transform: translateY(-2px); }
+}
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translateX(30px) scale(0.96); }
+  to { opacity: 1; transform: translateX(0) scale(1); }
+}
+
+@keyframes check-pop {
+  0% { transform: scale(0.6); opacity: 0; }
+  70% { transform: scale(1.18); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
 .auth-shell {
   animation: auth-enter 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.nav-panel {
+  animation: nav-menu-in 200ms ease-out both;
+}
+
+.pickup-shell {
+  animation: form-card-in 420ms ease-out both;
+}
+
+.pickup-step {
+  animation: form-card-in 420ms ease-out both;
+}
+
+.form-floating-card {
+  animation: float-rise 240ms ease-out both;
 }
 
 .landing-hero > img {

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Navbar } from "./components/Navbar";
 import { ServicesHubView } from "./components/ServicesHubView";
 import { TrackingView } from "./components/TrackingView";
@@ -43,6 +43,101 @@ import {
 } from "lucide-react";
 import { Span } from "next/dist/trace";
 
+type ToastVariant = "success" | "error" | "info" | "processing";
+
+interface ToastItem {
+  id: number;
+  title: string;
+  message: string;
+  variant: ToastVariant;
+}
+
+function ToastHost({
+  toasts,
+  onClose,
+}: {
+  toasts: ToastItem[];
+  onClose: (id: number) => void;
+}) {
+  return (
+    <div className="fixed top-5 right-5 z-[100] flex w-[min(92vw,380px)] flex-col gap-3">
+      {toasts.map((toast) => {
+        const isProcessing = toast.variant === "processing";
+        const isSuccess = toast.variant === "success";
+        const isError = toast.variant === "error";
+
+        return (
+          <div
+            key={toast.id}
+            className={`animate-[toast-in_260ms_cubic-bezier(0.22,1,0.36,1)] rounded-2xl border p-4 shadow-2xl backdrop-blur-sm ${
+              isSuccess
+                ? "border-emerald-200 bg-emerald-50 text-emerald-900"
+                : isError
+                  ? "border-red-200 bg-red-50 text-red-900"
+                  : isProcessing
+                    ? "border-amber-200 bg-amber-50 text-amber-900"
+                    : "border-blue-200 bg-blue-50 text-blue-900"
+            }`}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-start gap-3">
+                <div
+                  className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-xs font-bold ${
+                    isSuccess
+                      ? "border-emerald-300 bg-emerald-100 text-emerald-700"
+                      : isError
+                        ? "border-red-300 bg-red-100 text-red-700"
+                        : isProcessing
+                          ? "border-amber-300 bg-amber-100 text-amber-700"
+                          : "border-blue-300 bg-blue-100 text-blue-700"
+                  }`}
+                >
+                  {isProcessing ? (
+                    <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                  ) : isSuccess ? (
+                    <svg
+                      viewBox="0 0 24 24"
+                      className="h-4 w-4 animate-[check-pop_280ms_ease-out]"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path d="M5 12.5 9.2 16.7 19 6.8" />
+                    </svg>
+                  ) : isError ? (
+                    <span className="text-sm">!</span>
+                  ) : (
+                    <span className="text-sm">i</span>
+                  )}
+                </div>
+
+                <div className="flex-1">
+                  <p className="text-sm font-bold">{toast.title}</p>
+                  <p className="mt-1 text-xs leading-relaxed opacity-90">
+                    {toast.message}
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => onClose(toast.id)}
+                className="rounded-full p-1 text-current/80 transition hover:bg-black/5 cursor-pointer"
+                aria-label="Dismiss notification"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function App() {
   const [portal, setPortal] = useState<"consumer" | "staff" | "admin">(
     "consumer",
@@ -61,6 +156,61 @@ export default function App() {
   const [pickups, setPickups] = useState<PickupRequest[]>(INITIAL_PICKUPS);
   const [activeTrackingNumber, setActiveTrackingNumber] =
     useState<string>("JB-8829-US");
+  const [toasts, setToasts] = useState<ToastItem[]>([]);
+
+  const removeToast = (id: number) => {
+    setToasts((current) => current.filter((toast) => toast.id !== id));
+  };
+
+  const showToast = (
+    title: string,
+    message: string,
+    variant: ToastVariant = "info",
+  ) => {
+    const id = Date.now() + Math.random();
+    setToasts((current) => [...current, { id, title, message, variant }]);
+    window.setTimeout(() => removeToast(id), 4200);
+  };
+
+  const showProcessingThenSuccess = (
+    processingTitle: string,
+    processingMessage: string,
+    successTitle: string,
+    successMessage: string,
+  ) => {
+    const processingId = Date.now() + Math.random();
+    const successId = processingId + 1;
+
+    setToasts((current) => [
+      ...current.filter((toast) => toast.variant !== "processing"),
+      {
+        id: processingId,
+        title: processingTitle,
+        message: processingMessage,
+        variant: "processing",
+      },
+    ]);
+
+    window.setTimeout(() => {
+      removeToast(processingId);
+      setToasts((current) => [
+        ...current.filter((toast) => toast.id !== processingId),
+        {
+          id: successId,
+          title: successTitle,
+          message: successMessage,
+          variant: "success",
+        },
+      ]);
+      window.setTimeout(() => removeToast(successId), 4200);
+    }, 1800);
+  };
+
+  useEffect(() => {
+    return () => {
+      toasts.forEach((toast) => window.clearTimeout(Number(toast.id)));
+    };
+  }, [toasts]);
 
   const handleUpdateShipment = (updated: Shipment) => {
     setShipments((prev) =>
@@ -84,10 +234,22 @@ export default function App() {
 
   const handleAddAppointment = (newApt: Appointment) => {
     setAppointments((prev) => [newApt, ...prev]);
+    showProcessingThenSuccess(
+      "Processing appointment",
+      `We are reserving your ${newApt.serviceType.replace(/_/g, " ")} time slot now.`,
+      "Appointment booked",
+      `Your ${newApt.serviceType.replace(/_/g, " ")} request has been scheduled successfully.`,
+    );
   };
 
   const handleAddPickup = (newPickup: PickupRequest) => {
     setPickups((prev) => [newPickup, ...prev]);
+    showProcessingThenSuccess(
+      "Processing pickup",
+      `We are scheduling your doorstep collection for ${newPickup.pickupDate}.`,
+      "Pickup scheduled",
+      `Your pickup for ${newPickup.pickupDate} has been confirmed successfully.`,
+    );
   };
 
   const handleUpdatePickup = (updated: PickupRequest) => {
@@ -95,21 +257,31 @@ export default function App() {
   };
 
   const handleQuickTrack = (trackingNo: string) => {
+    const trimmed = trackingNo.trim();
+    if (!trimmed) {
+      showToast(
+        "Tracking required",
+        "Please enter a tracking number to continue.",
+        "error",
+      );
+      return;
+    }
+
     setPortal("consumer");
-    setActiveTrackingNumber(trackingNo.trim());
+    setActiveTrackingNumber(trimmed);
     setActiveTab("track");
     window.scrollTo({ top: 0, behavior: "smooth" });
+    showToast("Tracking ready", `Looking up shipment ${trimmed}.`, "info");
   };
 
   const handleHeroTrackSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (heroSearch.trim()) {
-      handleQuickTrack(heroSearch);
-    }
+    handleQuickTrack(heroSearch);
   };
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col font-sans selection:bg-blue-600 selection:text-white">
+      <ToastHost toasts={toasts} onClose={removeToast} />
       {/* Top Header & Navigation with Integrated Role/Dashboard Switcher */}
       <Navbar
         activeTab={activeTab}
@@ -328,6 +500,7 @@ export default function App() {
                   <AppointmentBookingView
                     appointments={appointments}
                     onAddAppointment={handleAddAppointment}
+                    onNotify={showToast}
                   />
                 )}
 
@@ -335,6 +508,7 @@ export default function App() {
                   <PickupSchedulerView
                     pickups={pickups}
                     onAddPickup={handleAddPickup}
+                    onNotify={showToast}
                   />
                 )}
 

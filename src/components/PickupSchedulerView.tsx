@@ -20,11 +20,17 @@ import { PickupRequest, Carrier } from "../types";
 interface PickupSchedulerViewProps {
   pickups: PickupRequest[];
   onAddPickup: (pickup: PickupRequest) => void;
+  onNotify?: (
+    title: string,
+    message: string,
+    variant?: "success" | "error" | "info" | "processing",
+  ) => void;
 }
 
 export const PickupSchedulerView: React.FC<PickupSchedulerViewProps> = ({
   pickups,
   onAddPickup,
+  onNotify,
 }) => {
   const [businessName, setBusinessName] = useState("");
   const [contactName, setContactName] = useState("");
@@ -49,7 +55,14 @@ export const PickupSchedulerView: React.FC<PickupSchedulerViewProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!contactName || !contactPhone || !street || !zip) return;
+    if (!contactName || !contactPhone || !street || !zip) {
+      onNotify?.(
+        "Missing details",
+        "Please complete the required pickup information before submitting.",
+        "error",
+      );
+      return;
+    }
 
     const newPickup: PickupRequest = {
       id: `pck-${Date.now()}`,
@@ -84,9 +97,9 @@ export const PickupSchedulerView: React.FC<PickupSchedulerViewProps> = ({
   };
 
   return (
-    <div className="space-y-8">
+    <div className="pickup-shell space-y-8">
       {/* Header */}
-      <div className="bg-white rounded-3xl border border-gray-200/80 p-6 sm:p-8 shadow-xs">
+      <div className="bg-white rounded-3xl border border-gray-200/80 p-6 sm:p-8 shadow-xs transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md">
         <div className="max-w-3xl">
           <span className="text-xs font-semibold text-blue-700 bg-blue-50 px-3 py-1 rounded-full border border-blue-200/60 inline-flex items-center gap-1.5">
             <Truck className="w-3.5 h-3.5" /> Doorstep Collection Service
@@ -101,38 +114,11 @@ export const PickupSchedulerView: React.FC<PickupSchedulerViewProps> = ({
         </div>
       </div>
 
-      {/* Confirmation Message */}
-      {confirmedPickup && (
-        <div className="bg-emerald-50 border border-emerald-200 rounded-3xl p-6 shadow-xs flex items-start gap-4 animate-in fade-in">
-          <div className="w-10 h-10 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shrink-0">
-            <CheckCircle2 className="w-6 h-6" />
-          </div>
-          <div className="space-y-1">
-            <h3 className="text-lg font-bold text-emerald-950">
-              Pickup Successfully Scheduled!
-            </h3>
-            <p className="text-sm text-emerald-800">
-              Your driver is scheduled for{" "}
-              <strong>{confirmedPickup.pickupDate}</strong> between{" "}
-              <strong>
-                {confirmedPickup.readyTime} and {confirmedPickup.closeTime}
-              </strong>
-              . We&apos;ll text updates to{" "}
-              <strong>{confirmedPickup.contactPhone}</strong>.
-            </p>
-            <p className="text-xs text-emerald-700 pt-1 font-medium">
-              Confirmation ID: #{confirmedPickup.id} • Carrier:{" "}
-              {confirmedPickup.preferredCarrier.toUpperCase()}
-            </p>
-          </div>
-        </div>
-      )}
-
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Pickup Request Form (7 Cols) */}
         <form
           onSubmit={handleSubmit}
-          className="lg:col-span-7 bg-white rounded-3xl border border-gray-200/80 p-6 sm:p-8 shadow-xs space-y-6"
+          className="pickup-step lg:col-span-7 bg-white rounded-3xl border border-gray-200/80 p-6 sm:p-8 shadow-xs space-y-6 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md"
         >
           {/* Step 1: Address & Contact */}
           <div className="space-y-3">
@@ -154,7 +140,7 @@ export const PickupSchedulerView: React.FC<PickupSchedulerViewProps> = ({
                   placeholder="e.g. Sarah Jenkins"
                   value={contactName}
                   onChange={(e) => setContactName(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:border-blue-600 focus:bg-white bg-gray-50 focus:outline-none transition"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:border-blue-600 focus:bg-white bg-gray-50 focus:outline-none transition-all duration-200 hover:border-gray-300"
                 />
               </div>
 
@@ -168,7 +154,7 @@ export const PickupSchedulerView: React.FC<PickupSchedulerViewProps> = ({
                   placeholder="(404) 555-0123"
                   value={contactPhone}
                   onChange={(e) => setContactPhone(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:border-blue-600 focus:bg-white bg-gray-50 focus:outline-none transition"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:border-blue-600 focus:bg-white bg-gray-50 focus:outline-none transition-all duration-200 hover:border-gray-300"
                 />
               </div>
             </div>
@@ -184,7 +170,7 @@ export const PickupSchedulerView: React.FC<PickupSchedulerViewProps> = ({
                   placeholder="e.g. 3500 Lenox Rd NE"
                   value={street}
                   onChange={(e) => setStreet(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:border-blue-600 focus:bg-white bg-gray-50 focus:outline-none transition"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:border-blue-600 focus:bg-white bg-gray-50 focus:outline-none transition-all duration-200 hover:border-gray-300"
                 />
               </div>
 
@@ -197,7 +183,7 @@ export const PickupSchedulerView: React.FC<PickupSchedulerViewProps> = ({
                   placeholder="e.g. Apt 4B or Suite 200"
                   value={suite}
                   onChange={(e) => setSuite(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:border-blue-600 focus:bg-white bg-gray-50 focus:outline-none transition"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:border-blue-600 focus:bg-white bg-gray-50 focus:outline-none transition-all duration-200 hover:border-gray-300"
                 />
               </div>
             </div>
@@ -260,7 +246,7 @@ export const PickupSchedulerView: React.FC<PickupSchedulerViewProps> = ({
                   type="button"
                   key={c.id}
                   onClick={() => setPreferredCarrier(c.id as Carrier)}
-                  className={`p-3 rounded-2xl border text-center transition cursor-pointer ${
+                  className={`form-floating-card p-3 rounded-2xl border text-center transition-all duration-200 cursor-pointer hover:-translate-y-0.5 ${
                     preferredCarrier === c.id
                       ? "border-blue-600 bg-blue-50/70 shadow-xs ring-2 ring-blue-100"
                       : "border-gray-200 hover:border-gray-300 bg-white"
@@ -423,7 +409,7 @@ export const PickupSchedulerView: React.FC<PickupSchedulerViewProps> = ({
           </div>
 
           {/* Active Pickups List */}
-          <div className="bg-white rounded-3xl border border-gray-200/80 p-6 shadow-xs space-y-4">
+          <div className="form-floating-card bg-white rounded-3xl border border-gray-200/80 p-6 shadow-xs space-y-4 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md">
             <div className="flex items-center justify-between pb-3 border-b border-gray-100">
               <h4 className="font-bold text-sm text-gray-900">
                 Recently Scheduled Pickups

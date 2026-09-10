@@ -105,7 +105,13 @@ export type AppointmentServiceType =
   | 'mailbox_rental'
   | 'freight_consultation'
   | 'shredding_services'
-  | 'fingerprinting';
+  | 'fingerprinting'
+  | 'livescan_fingerprinting'
+  | 'shipping_consultation'
+  | 'passport_photos'
+  | 'secure_document_shredding'
+  | 'packing_supplies'
+  | 'fax_copies';
 
 export type AppointmentStatus =
   | 'pending'
