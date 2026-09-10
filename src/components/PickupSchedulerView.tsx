@@ -64,8 +64,10 @@ export const PickupSchedulerView: React.FC<PickupSchedulerViewProps> = ({
       return;
     }
 
+    const pickupId = `PICK-${String(Date.now()).slice(-6)}`;
     const newPickup: PickupRequest = {
-      id: `pck-${Date.now()}`,
+      id: pickupId,
+      trackingNumber: pickupId,
       customerId: `cust-${Math.floor(100 + Math.random() * 900)}`,
       businessName: businessName || undefined,
       contactName,
@@ -355,6 +357,39 @@ export const PickupSchedulerView: React.FC<PickupSchedulerViewProps> = ({
             <span>Confirm Pickup Request</span>
           </button>
         </form>
+
+        {confirmedPickup && confirmedPickup.qrCode && (
+          <div className="lg:col-span-5">
+            <div className="bg-white rounded-3xl border border-gray-200/80 p-6 shadow-xs space-y-4">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-blue-700">
+                    Pickup QR
+                  </p>
+                  <h4 className="text-base font-bold text-gray-900 mt-1">
+                    {confirmedPickup.trackingNumber || confirmedPickup.id}
+                  </h4>
+                </div>
+                <div className="rounded-full bg-emerald-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-emerald-700">
+                  Ready
+                </div>
+              </div>
+
+              <div className="flex items-center justify-center rounded-2xl border border-gray-200 bg-gray-50 p-4">
+                <img
+                  src={confirmedPickup.qrCode}
+                  alt={`QR code for pickup ${confirmedPickup.trackingNumber || confirmedPickup.id}`}
+                  className="h-28 w-28 rounded-xl border border-gray-200 bg-white p-2 shadow-sm"
+                />
+              </div>
+
+              <p className="text-xs text-gray-500 leading-relaxed">
+                Show this QR code to the driver or keep it saved for quick scan
+                checks on arrival.
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Right Info Column (5 Cols) */}
         <div className="lg:col-span-5 space-y-6">

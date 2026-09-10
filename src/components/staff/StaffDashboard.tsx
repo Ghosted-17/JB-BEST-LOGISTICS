@@ -66,6 +66,9 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({
   const [selectedShipmentId, setSelectedShipmentId] = useState<string>(
     shipments[0]?.id || "",
   );
+  const [selectedPickupId, setSelectedPickupId] = useState<string>(
+    pickups[0]?.id || "",
+  );
   const [milestoneStatus, setMilestoneStatus] =
     useState<ShipmentStatus>("in_transit");
   const [milestoneTitle, setMilestoneTitle] = useState(
@@ -75,6 +78,134 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({
   const [milestoneDesc, setMilestoneDesc] = useState(
     "Departed sort facility en route to destination.",
   );
+
+  const printShipmentLabel = (shipment: Shipment | null | undefined) => {
+    if (!shipment) return;
+
+    const printWindow = window.open("", "_blank", "width=440,height=700");
+    if (!printWindow) return;
+
+    const formatAddress = (addr: Shipment["sender"] | Shipment["recipient"]) =>
+      `${addr.name}\n${addr.street}${addr.suite ? `, ${addr.suite}` : ""}\n${addr.city}, ${addr.state} ${addr.zip}\n${addr.country}`;
+
+    printWindow.document.write(`
+      <!doctype html>
+      <html>
+        <head>
+          <title>JB & Best Logistics Label</title>
+          <style>
+            body {
+              margin: 0;
+              font-family: Arial, sans-serif;
+              background: #f8fafc;
+              color: #0f172a;
+            }
+            .label {
+              width: 100%;
+              max-width: 360px;
+              margin: 18px auto;
+              background: white;
+              border: 2px solid #0f172a;
+              border-radius: 16px;
+              padding: 18px 16px;
+              box-sizing: border-box;
+            }
+            .header {
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              margin-bottom: 12px;
+              border-bottom: 1px solid #e2e8f0;
+              padding-bottom: 8px;
+            }
+            .brand {
+              font-size: 14px;
+              font-weight: 700;
+              letter-spacing: 0.06em;
+            }
+            .tracking {
+              font-size: 12px;
+              font-weight: 700;
+              color: #334155;
+            }
+            .qr-box {
+              display: flex;
+              justify-content: center;
+              margin: 12px 0 18px;
+            }
+            .qr-box img {
+              width: 164px;
+              height: 164px;
+              border: 2px solid #e2e8f0;
+              border-radius: 10px;
+              background: white;
+              padding: 8px;
+            }
+            .section {
+              margin-bottom: 12px;
+            }
+            .section-label {
+              font-size: 10px;
+              font-weight: 700;
+              letter-spacing: 0.12em;
+              text-transform: uppercase;
+              color: #64748b;
+              margin-bottom: 4px;
+            }
+            .address {
+              font-size: 12px;
+              line-height: 1.5;
+              white-space: pre-line;
+            }
+            .meta {
+              font-size: 11px;
+              color: #1e293b;
+              font-weight: 600;
+            }
+            @media print {
+              body { background: white; }
+              .label {
+                margin: 0;
+                box-shadow: none;
+                border-width: 1.5px;
+              }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="label">
+            <div class="header">
+              <div class="brand">JB & BEST</div>
+              <div class="tracking">${shipment.trackingNumber}</div>
+            </div>
+
+            <div class="qr-box">
+              ${shipment.qrCode ? `<img src="${shipment.qrCode}" alt="Tracking QR code" />` : "<div>No QR code</div>"}
+            </div>
+
+            <div class="section">
+              <div class="section-label">From</div>
+              <div class="address">${formatAddress(shipment.sender)}</div>
+            </div>
+
+            <div class="section">
+              <div class="section-label">To</div>
+              <div class="address">${formatAddress(shipment.recipient)}</div>
+            </div>
+
+            <div class="meta">Carrier: ${shipment.carrier.toUpperCase()} • Service: ${shipment.serviceLevel}</div>
+          </div>
+        </body>
+      </html>
+    `);
+
+    printWindow.document.close();
+    setTimeout(() => {
+      printWindow.focus();
+      printWindow.print();
+      printWindow.close();
+    }, 250);
+  };
 
   const handleCreateShipment = (e: React.FormEvent) => {
     e.preventDefault();
@@ -163,6 +294,9 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({
     setIntakeSuccess(trackingId);
     setNewTrackingNum("");
   };
+
+  const selectedPickup =
+    pickups.find((p) => p.id === selectedPickupId) || pickups[0];
 
   const handleAddMilestone = (e: React.FormEvent) => {
     e.preventDefault();
@@ -298,7 +432,13 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({
                 </div>
                 <button
                   type="button"
-                  onClick={() => window.print()}
+                  onClick={() =>
+                    printShipmentLabel(
+                      shipments.find(
+                        (shipment) => shipment.trackingNumber === intakeSuccess,
+                      ) || shipments[0],
+                    )
+                  }
                   className="px-2.5 py-1 bg-emerald-600 text-white rounded-lg font-bold flex items-center gap-1 cursor-pointer"
                 >
                   <Printer className="w-3 h-3" /> Print Label
@@ -467,76 +607,164 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({
             </span>
           </div>
 
-          <div className="space-y-4">
-            {pickups.map((p) => (
-              <div
-                key={p.id}
-                className="p-5 rounded-2xl border border-gray-200/80 bg-gray-50/50 flex flex-col md:flex-row md:items-center justify-between gap-4"
-              >
-                <div className="space-y-1 text-xs">
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-sm text-gray-900">
-                      {p.contactName}
-                    </span>
-                    {p.businessName && (
-                      <span className="text-gray-500 font-medium">
-                        ({p.businessName})
+          <div className="grid grid-cols-1 xl:grid-cols-[1.6fr_0.9fr] gap-5">
+            <div className="space-y-4">
+              {pickups.map((p) => (
+                <div
+                  key={p.id}
+                  className="p-5 rounded-2xl border border-gray-200/80 bg-gray-50/50 flex flex-col md:flex-row md:items-center justify-between gap-4"
+                >
+                  <div className="space-y-1 text-xs">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-sm text-gray-900">
+                        {p.contactName}
+                      </span>
+                      {p.businessName && (
+                        <span className="text-gray-500 font-medium">
+                          ({p.businessName})
+                        </span>
+                      )}
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-blue-100 text-blue-800">
+                        {p.status}
+                      </span>
+                    </div>
+                    <p className="text-gray-600">
+                      📍 {p.pickupAddress.street},{" "}
+                      {p.pickupAddress.suite
+                        ? `${p.pickupAddress.suite}, `
+                        : ""}
+                      {p.pickupAddress.city} {p.pickupAddress.zip}
+                    </p>
+                    <p className="text-gray-500">
+                      📞 {p.contactPhone} • Ready: {p.pickupDate} ({p.readyTime}{" "}
+                      - {p.closeTime}) • {p.estimatedPackagesCount} boxes (
+                      {p.totalWeightLbs} lbs)
+                    </p>
+                    {p.specialInstructions && (
+                      <p className="text-amber-800 font-medium bg-amber-50 p-2 rounded-xl mt-1 border border-amber-200/60">
+                        ⚠️ Note / Gate Code: {p.specialInstructions}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0 flex-wrap">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedPickupId(p.id)}
+                      className="px-3 py-2 bg-slate-900 hover:bg-slate-700 text-white text-xs font-semibold rounded-xl transition cursor-pointer"
+                    >
+                      Scan Details
+                    </button>
+                    {p.status === "scheduled" && (
+                      <button
+                        onClick={() =>
+                          onUpdatePickup({
+                            ...p,
+                            status: "in_route",
+                            assignedDriverId: "Driver-Van-01",
+                          })
+                        }
+                        className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl transition cursor-pointer"
+                      >
+                        Assign Van & Dispatch
+                      </button>
+                    )}
+                    {p.status === "in_route" && (
+                      <button
+                        onClick={() =>
+                          onUpdatePickup({ ...p, status: "completed" })
+                        }
+                        className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl transition cursor-pointer"
+                      >
+                        Mark Collected
+                      </button>
+                    )}
+                    {p.status === "completed" && (
+                      <span className="text-xs text-emerald-700 font-bold flex items-center gap-1">
+                        <CheckCircle2 className="w-4 h-4" /> Picked Up
                       </span>
                     )}
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-blue-100 text-blue-800">
-                      {p.status}
-                    </span>
                   </div>
-                  <p className="text-gray-600">
-                    📍 {p.pickupAddress.street},{" "}
-                    {p.pickupAddress.suite ? `${p.pickupAddress.suite}, ` : ""}
-                    {p.pickupAddress.city} {p.pickupAddress.zip}
-                  </p>
-                  <p className="text-gray-500">
-                    📞 {p.contactPhone} • Ready: {p.pickupDate} ({p.readyTime} -{" "}
-                    {p.closeTime}) • {p.estimatedPackagesCount} boxes (
-                    {p.totalWeightLbs} lbs)
-                  </p>
-                  {p.specialInstructions && (
-                    <p className="text-amber-800 font-medium bg-amber-50 p-2 rounded-xl mt-1 border border-amber-200/60">
-                      ⚠️ Note / Gate Code: {p.specialInstructions}
+                </div>
+              ))}
+            </div>
+
+            {selectedPickup && (
+              <div className="bg-slate-900 text-white rounded-3xl p-5 shadow-sm border border-slate-800">
+                <div className="flex items-center justify-between gap-3 pb-3 border-b border-slate-700">
+                  <div>
+                    <p className="text-[10px] uppercase tracking-[0.18em] text-slate-400">
+                      Pickup QR Sync
                     </p>
+                    <h4 className="text-lg font-bold mt-1">
+                      {selectedPickup.trackingNumber || selectedPickup.id}
+                    </h4>
+                  </div>
+                  <span className="rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/20 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.12em]">
+                    Live
+                  </span>
+                </div>
+
+                <div className="mt-4 flex items-center justify-center rounded-2xl border border-slate-700 bg-slate-800 p-4">
+                  {selectedPickup.qrCode ? (
+                    <img
+                      src={selectedPickup.qrCode}
+                      alt={`QR code for pickup ${selectedPickup.trackingNumber || selectedPickup.id}`}
+                      className="h-28 w-28 rounded-xl border border-slate-700 bg-white p-2"
+                    />
+                  ) : (
+                    <div className="text-center text-slate-300 text-xs">
+                      QR code unavailable for this pickup.
+                    </div>
                   )}
                 </div>
 
-                <div className="flex items-center gap-2 shrink-0">
-                  {p.status === "scheduled" && (
-                    <button
-                      onClick={() =>
-                        onUpdatePickup({
-                          ...p,
-                          status: "in_route",
-                          assignedDriverId: "Driver-Van-01",
-                        })
-                      }
-                      className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl transition cursor-pointer"
-                    >
-                      Assign Van & Dispatch
-                    </button>
-                  )}
-                  {p.status === "in_route" && (
-                    <button
-                      onClick={() =>
-                        onUpdatePickup({ ...p, status: "completed" })
-                      }
-                      className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl transition cursor-pointer"
-                    >
-                      Mark Collected
-                    </button>
-                  )}
-                  {p.status === "completed" && (
-                    <span className="text-xs text-emerald-700 font-bold flex items-center gap-1">
-                      <CheckCircle2 className="w-4 h-4" /> Picked Up
+                <div className="mt-5 space-y-2 text-xs text-slate-300">
+                  <div className="flex justify-between gap-3">
+                    <span className="text-slate-400">Customer</span>
+                    <span className="font-semibold text-white">
+                      {selectedPickup.contactName}
                     </span>
+                  </div>
+                  <div className="flex justify-between gap-3">
+                    <span className="text-slate-400">Phone</span>
+                    <span className="font-semibold text-white">
+                      {selectedPickup.contactPhone}
+                    </span>
+                  </div>
+                  <div className="flex justify-between gap-3">
+                    <span className="text-slate-400">Carrier</span>
+                    <span className="font-semibold uppercase text-white">
+                      {selectedPickup.preferredCarrier}
+                    </span>
+                  </div>
+                  <div className="flex justify-between gap-3">
+                    <span className="text-slate-400">Pickup</span>
+                    <span className="font-semibold text-white">
+                      {selectedPickup.pickupDate}
+                    </span>
+                  </div>
+                  <div className="pt-2 border-t border-slate-700 text-slate-300">
+                    <p className="text-slate-400 mb-1">Address</p>
+                    <p className="font-medium text-white leading-relaxed">
+                      {selectedPickup.pickupAddress.street},{" "}
+                      {selectedPickup.pickupAddress.city},{" "}
+                      {selectedPickup.pickupAddress.state}{" "}
+                      {selectedPickup.pickupAddress.zip}
+                    </p>
+                  </div>
+
+                  {selectedPickup.qrPayload && (
+                    <div className="pt-3 border-t border-slate-700 text-slate-300">
+                      <p className="text-slate-400 mb-1">Scanned order data</p>
+                      <pre className="max-h-28 overflow-auto rounded-xl border border-slate-700 bg-slate-800 p-2 text-[10px] leading-relaxed whitespace-pre-wrap text-slate-100">
+                        {selectedPickup.qrPayload}
+                      </pre>
+                    </div>
                   )}
                 </div>
               </div>
-            ))}
+            )}
           </div>
         </div>
       )}

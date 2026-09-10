@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import QRCode from "qrcode";
 import { Navbar } from "./components/Navbar";
 import { ServicesHubView } from "./components/ServicesHubView";
 import { TrackingView } from "./components/TrackingView";
@@ -158,6 +159,31 @@ export default function App() {
     useState<string>("JB-8829-US");
   const [toasts, setToasts] = useState<ToastItem[]>([]);
 
+  const generateQrCodeDataUrl = async (value: string) => {
+    try {
+      return await QRCode.toDataURL(value, {
+        margin: 1,
+        width: 220,
+        errorCorrectionLevel: "M",
+      });
+    } catch {
+      return "";
+    }
+  };
+
+  const buildTrackingQrPayload = (
+    type: "shipment" | "pickup",
+    trackingId: string,
+    summary: Record<string, string | number | undefined>,
+  ) => {
+    return JSON.stringify({
+      type,
+      trackingId,
+      scannedAt: new Date().toISOString(),
+      ...summary,
+    });
+  };
+
   const removeToast = (id: number) => {
     setToasts((current) => current.filter((toast) => toast.id !== id));
   };
@@ -218,8 +244,22 @@ export default function App() {
     );
   };
 
-  const handleAddShipment = (newShipment: Shipment) => {
-    setShipments((prev) => [newShipment, ...prev]);
+  const handleAddShipment = async (newShipment: Shipment) => {
+    const payload = buildTrackingQrPayload(
+      "shipment",
+      newShipment.trackingNumber,
+      {
+        customerName: newShipment.recipient.name,
+        destination: `${newShipment.recipient.city}, ${newShipment.recipient.state}`,
+        status: newShipment.currentStatus,
+        carrier: newShipment.carrier,
+      },
+    );
+    const qrCode = await generateQrCodeDataUrl(payload);
+    setShipments((prev) => [
+      { ...newShipment, qrCode, qrPayload: payload },
+      ...prev,
+    ]);
   };
 
   const handleUpdateInvoice = (updated: Invoice) => {
@@ -242,8 +282,22 @@ export default function App() {
     );
   };
 
-  const handleAddPickup = (newPickup: PickupRequest) => {
-    setPickups((prev) => [newPickup, ...prev]);
+  const handleAddPickup = async (newPickup: PickupRequest) => {
+    const trackingId = newPickup.trackingNumber || newPickup.id;
+    const payload = buildTrackingQrPayload("pickup", trackingId, {
+      customerName: newPickup.contactName,
+      phone: newPickup.contactPhone,
+      address: `${newPickup.pickupAddress.street}, ${newPickup.pickupAddress.city}, ${newPickup.pickupAddress.state}`,
+      scheduledDate: newPickup.pickupDate,
+      carrier: newPickup.preferredCarrier,
+      packageCount: newPickup.estimatedPackagesCount,
+      notes: newPickup.specialInstructions || "No additional instructions",
+    });
+    const qrCode = await generateQrCodeDataUrl(payload);
+    setPickups((prev) => [
+      { ...newPickup, trackingNumber: trackingId, qrCode, qrPayload: payload },
+      ...prev,
+    ]);
     showProcessingThenSuccess(
       "Processing pickup",
       `We are scheduling your doorstep collection for ${newPickup.pickupDate}.`,

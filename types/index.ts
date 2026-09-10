@@ -82,6 +82,8 @@ export interface PackageDetails {
 export interface Shipment {
   id: string; // Document ID / tracking number
   trackingNumber: string;
+  qrCode?: string;
+  qrPayload?: string;
   carrier: Carrier;
   serviceLevel: string; // e.g. "FedEx Ground", "UPS Next Day Air", "USPS Priority Express"
   sender: ShipmentAddress;
@@ -145,6 +147,9 @@ export type PickupRequestStatus =
 
 export interface PickupRequest {
   id: string;
+  trackingNumber?: string;
+  qrCode?: string;
+  qrPayload?: string;
   customerId: string;
   businessName?: string;
   contactName: string;
