@@ -82,6 +82,8 @@ export interface PackageDetails {
 export interface Shipment {
   id: string; // Document ID / tracking number
   trackingNumber: string;
+  qrCode?: string;
+  qrPayload?: string;
   carrier: Carrier;
   serviceLevel: string; // e.g. "FedEx Ground", "UPS Next Day Air", "USPS Priority Express"
   sender: ShipmentAddress;
@@ -105,7 +107,13 @@ export type AppointmentServiceType =
   | 'mailbox_rental'
   | 'freight_consultation'
   | 'shredding_services'
-  | 'fingerprinting';
+  | 'fingerprinting'
+  | 'livescan_fingerprinting'
+  | 'shipping_consultation'
+  | 'passport_photos'
+  | 'secure_document_shredding'
+  | 'packing_supplies'
+  | 'fax_copies';
 
 export type AppointmentStatus =
   | 'pending'
@@ -139,6 +147,9 @@ export type PickupRequestStatus =
 
 export interface PickupRequest {
   id: string;
+  trackingNumber?: string;
+  qrCode?: string;
+  qrPayload?: string;
   customerId: string;
   businessName?: string;
   contactName: string;
