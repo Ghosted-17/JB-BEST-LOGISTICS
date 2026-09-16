@@ -84,7 +84,7 @@ export const TrackingView: React.FC<TrackingViewProps> = ({
       (s) =>
         s.trackingNumber.toLowerCase() === selectedId.toLowerCase() ||
         s.id === selectedId,
-    ) || shipments[0];
+    );
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -280,6 +280,13 @@ export const TrackingView: React.FC<TrackingViewProps> = ({
           ))}
         </div>
       </div>
+
+      {!currentShipment && (
+        <div className="rounded-3xl border border-amber-200 bg-amber-50 p-6 text-sm text-amber-900">
+          We could not find a shipment with that tracking or order ID. Check
+          that it is exactly 20 uppercase letters and numbers.
+        </div>
+      )}
 
       {currentShipment && carrierInfo && (
         <div className="space-y-6">

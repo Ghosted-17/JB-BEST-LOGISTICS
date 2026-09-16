@@ -164,6 +164,9 @@ export default function App() {
   const [appointments, setAppointments] =
     useState<Appointment[]>(INITIAL_APPOINTMENTS);
   const [pickups, setPickups] = useState<PickupRequest[]>(INITIAL_PICKUPS);
+  const [activeTrackingNumber, setActiveTrackingNumber] = useState(
+    "JB8K4M2Q7R9T5V3X1Z6P",
+  );
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const generateQrCodeDataUrl = async (value: string) => {
     try {
