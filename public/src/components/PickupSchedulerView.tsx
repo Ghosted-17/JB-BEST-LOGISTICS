@@ -16,6 +16,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { PickupRequest, Carrier } from "../types";
+import { AuthUser } from "../lib/api";
 
 interface PickupSchedulerViewProps {
   pickups: PickupRequest[];
@@ -25,17 +26,19 @@ interface PickupSchedulerViewProps {
     message: string,
     variant?: "success" | "error" | "info" | "processing",
   ) => void;
+  customer?: AuthUser | null;
 }
 
 export const PickupSchedulerView: React.FC<PickupSchedulerViewProps> = ({
   pickups,
   onAddPickup,
   onNotify,
+  customer,
 }) => {
   const [businessName, setBusinessName] = useState("");
-  const [contactName, setContactName] = useState("");
-  const [contactPhone, setContactPhone] = useState("");
-  const [contactEmail, setContactEmail] = useState("");
+  const [contactName, setContactName] = useState(customer?.name || "");
+  const [contactPhone, setContactPhone] = useState(customer?.phone || "");
+  const [contactEmail, setContactEmail] = useState(customer?.email || "");
   const [street, setStreet] = useState("3500 Lenox Rd NE");
   const [suite, setSuite] = useState("Suite 400");
   const [city, setCity] = useState("Atlanta");
@@ -52,6 +55,12 @@ export const PickupSchedulerView: React.FC<PickupSchedulerViewProps> = ({
   const [confirmedPickup, setConfirmedPickup] = useState<PickupRequest | null>(
     null,
   );
+
+  React.useEffect(() => {
+    setContactName(customer?.name || "");
+    setContactPhone(customer?.phone || "");
+    setContactEmail(customer?.email || "");
+  }, [customer]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

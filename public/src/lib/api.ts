@@ -6,6 +6,7 @@ export interface AuthUser {
   id?: string;
   email?: string;
   name?: string;
+  phone?: string;
   role: AuthRole;
   status?: 'active' | 'suspended';
   branchId?: string;
@@ -47,12 +48,29 @@ export const login = (email: string, password: string) =>
     body: JSON.stringify({ email, password }),
   });
 
+export const requestPasswordReset = (email: string) =>
+  apiRequest<{ message: string; developmentToken?: string }>('/api/auth/forgot-password', {
+    method: 'POST',
+    auth: false,
+    body: JSON.stringify({ email }),
+  });
+
+export const resetPassword = (token: string, newPassword: string) =>
+  apiRequest<{ message: string }>('/api/auth/reset-password', {
+    method: 'POST',
+    auth: false,
+    body: JSON.stringify({ token, newPassword }),
+  });
+
 export const register = (name: string, email: string, password: string) =>
   apiRequest<{ token: string; user: AuthUser }>('/api/auth/register', {
     method: 'POST',
     auth: false,
     body: JSON.stringify({ name, email, password }),
   });
+
+export const getCurrentUser = () =>
+  apiRequest<{ user: AuthUser }>('/api/auth/me');
 
 export const listStaffAccounts = () =>
   apiRequest<{ users: StaffAccount[]; pagination: { total: number } }>('/api/admin/users?limit=100');

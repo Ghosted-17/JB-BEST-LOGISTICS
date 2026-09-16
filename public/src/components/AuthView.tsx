@@ -8,7 +8,7 @@ import {
   User,
   X,
 } from "lucide-react";
-import { login, register, AuthUser } from "../lib/api";
+import { login, register, requestPasswordReset, resetPassword, AuthUser } from "../lib/api";
 
 type Portal = "consumer" | "staff" | "branch" | "admin";
 type UserRole = "customer" | "associate" | "admin";
@@ -27,6 +27,8 @@ export const AuthView: React.FC<AuthViewProps> = ({
   onAuthenticated,
 }) => {
   const [isSignUp, setIsSignUp] = useState(false);
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
+  const [resetToken, setResetToken] = useState("");
   const [authError, setAuthError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -37,6 +39,21 @@ export const AuthView: React.FC<AuthViewProps> = ({
     const form = new FormData(event.currentTarget);
 
     try {
+      if (isForgotPassword) {
+        const email = String(form.get("email") || "");
+        if (!resetToken) {
+          const response = await requestPasswordReset(email);
+          if (response.developmentToken) setResetToken(response.developmentToken);
+          setAuthError(response.developmentToken ? "Development reset token created. Enter it below to continue." : response.message);
+        } else {
+          await resetPassword(resetToken, String(form.get("password") || ""));
+          setIsForgotPassword(false);
+          setResetToken("");
+          setAuthError("Password reset. You can now log in.");
+        }
+        return;
+      }
+
       const response = isSignUp
         ? await register(
             String(form.get("name") || ""),
@@ -140,7 +157,7 @@ export const AuthView: React.FC<AuthViewProps> = ({
                 Account access
               </span>
               <h2 className="mt-2 font-display text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
-                {isSignUp ? "Create your customer account" : "Customer login"}
+                {isForgotPassword ? "Reset your password" : isSignUp ? "Create your customer account" : "Customer login"}
               </h2>
               <p className="mt-2 text-sm text-slate-500">
                 Manage shipments, appointments, pickups, and receipts.
@@ -152,7 +169,7 @@ export const AuthView: React.FC<AuthViewProps> = ({
             </p>
 
             <form onSubmit={handleSubmit} className="mt-6 space-y-5">
-              {isSignUp && (
+              {isSignUp && !isForgotPassword && (
                 <label className="block text-sm font-semibold text-slate-700">
                   Full name
                   <input
@@ -181,12 +198,18 @@ export const AuthView: React.FC<AuthViewProps> = ({
                 Password
                 <input
                   name="password"
-                  required
+                  required={!isForgotPassword || Boolean(resetToken)}
                   type="password"
                   placeholder="Enter your password"
                   className="auth-input bg-slate-50"
                 />
               </label>
+              {isForgotPassword && resetToken && (
+                <label className="block text-sm font-semibold text-slate-700">
+                  Reset token
+                  <input name="token" value={resetToken} onChange={(event) => setResetToken(event.target.value)} className="auth-input bg-slate-50" />
+                </label>
+              )}
               {authError && (
                 <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">
                   {authError}
@@ -198,14 +221,20 @@ export const AuthView: React.FC<AuthViewProps> = ({
                 className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 py-3.5 text-sm font-bold text-white shadow-lg shadow-blue-600/20 transition hover:-translate-y-0.5 hover:bg-blue-700 disabled:cursor-wait disabled:opacity-60"
               >
                 <LockKeyhole className="h-4 w-4" />
-                  {isSubmitting ? "Connecting..." : isSignUp ? "Create account" : "Log in"}
+                  {isSubmitting ? "Working..." : isForgotPassword ? (resetToken ? "Set new password" : "Send reset instructions") : isSignUp ? "Create account" : "Log in"}
               </button>
             </form>
-            <button
-              onClick={() => setIsSignUp((value) => !value)}
+            {!isForgotPassword && !isSignUp && <button
+              onClick={() => { setIsForgotPassword(true); setAuthError(""); }}
               className="mt-5 w-full text-center text-sm font-semibold text-blue-700 hover:text-blue-900"
             >
-              {isSignUp ? "Already have an account? Log in" : "New here? Create an account"}
+              Forgot your password?
+            </button>}
+            <button
+              onClick={() => { setIsForgotPassword(false); setIsSignUp((value) => !value); setAuthError(""); }}
+              className="mt-5 w-full text-center text-sm font-semibold text-blue-700 hover:text-blue-900"
+            >
+              {isForgotPassword ? "Back to login" : isSignUp ? "Already have an account? Log in" : "New here? Create an account"}
             </button>
             <p className="mt-10 flex items-center justify-center gap-2 text-xs text-slate-400">
               <User className="h-3.5 w-3.5" /> Your account connects every JB &

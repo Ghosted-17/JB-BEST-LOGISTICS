@@ -285,6 +285,15 @@ const idempotencyKeySchema = new Schema({
 idempotencyKeySchema.index({ userId: 1, key: 1, scope: 1 }, { unique: true });
 idempotencyKeySchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
+const passwordResetTokenSchema = new Schema({
+  userId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+  tokenHash: { type: String, required: true, unique: true },
+  expiresAt: { type: Date, required: true, index: true },
+  usedAt: Date,
+}, { timestamps: true });
+
+passwordResetTokenSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+
 export const User: Model<UserDocument> = mongoose.models.User || mongoose.model<UserDocument>('User', userSchema);
 export const Shipment: Model<ShipmentDocument> = mongoose.models.Shipment || mongoose.model<ShipmentDocument>('Shipment', shipmentSchema);
 export const PickupJob: Model<PickupJobDocument> = mongoose.models.PickupJob || mongoose.model<PickupJobDocument>('PickupJob', pickupJobSchema);
@@ -296,3 +305,4 @@ export const Branch: Model<BranchDocument> = mongoose.models.Branch || mongoose.
 export const Invoice: Model<InvoiceDocument> = mongoose.models.Invoice || mongoose.model<InvoiceDocument>('Invoice', invoiceSchema);
 export const WebhookEvent: Model<WebhookEventDocument> = mongoose.models.WebhookEvent || mongoose.model<WebhookEventDocument>('WebhookEvent', webhookEventSchema);
 export const IdempotencyKey = mongoose.models.IdempotencyKey || mongoose.model('IdempotencyKey', idempotencyKeySchema);
+export const PasswordResetToken = mongoose.models.PasswordResetToken || mongoose.model('PasswordResetToken', passwordResetTokenSchema);

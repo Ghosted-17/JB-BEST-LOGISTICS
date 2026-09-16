@@ -9,10 +9,10 @@ import crypto from 'node:crypto';
 import mongoose from 'mongoose';
 import { config } from './config';
 import { connectDatabase } from './db';
-import { ActivityLog, Appointment, Branch, IdempotencyKey, Notification, Payment, PickupJob, Shipment, User, type DeliveryOption, type Role, type ShipmentStatus } from './models';
+import { ActivityLog, Appointment, Branch, IdempotencyKey, Notification, PasswordResetToken, Payment, PickupJob, Shipment, User, type DeliveryOption, type Role, type ShipmentStatus } from './models';
 import { allowRoles, issueToken, publicUser, requireAuth, type AuthRequest } from './auth';
 import { calculateQuote, isAfterDropoffCutoff } from './pricing';
-import { adminPasswordResetSchema, adminUserCreateSchema, adminUserUpdateSchema, appointmentSchema, branchCreateSchema, carrierAssignmentSchema, loginSchema, parseBody, parsePagination, paymentSchema, profileUpdateSchema, quoteSchema, registerSchema, shipmentSchema } from './validation';
+import { adminPasswordResetSchema, adminUserCreateSchema, adminUserUpdateSchema, appointmentSchema, branchCreateSchema, carrierAssignmentSchema, forgotPasswordSchema, loginSchema, parseBody, parsePagination, paymentSchema, profileUpdateSchema, quoteSchema, registerSchema, resetPasswordSchema, shipmentSchema } from './validation';
 import { uploadPrivateProfilePhoto } from './storage';
 
 const app = express();
@@ -85,6 +85,37 @@ app.post('/api/auth/login', asyncRoute(async (req, res) => {
   if (!user || user.status !== 'active' || !(await bcrypt.compare(password, user.passwordHash))) return res.status(401).json({ error: 'Invalid email or password' });
   await logActivity(req as AuthRequest, 'login', 'user', user.id);
   return res.json({ user: publicUser(user), token: issueToken(user) });
+}));
+
+app.post('/api/auth/forgot-password', asyncRoute(async (req, res) => {
+  const { email } = parseBody(forgotPasswordSchema, req.body);
+  const user = await User.findOne({ email: email.toLowerCase(), status: 'active' });
+  const response: { message: string; developmentToken?: string } = {
+    message: 'If an account exists for that email, reset instructions have been sent.',
+  };
+  if (user) {
+    const rawToken = crypto.randomBytes(32).toString('hex');
+    await PasswordResetToken.deleteMany({ userId: user._id, usedAt: { $exists: false } });
+    await PasswordResetToken.create({
+      userId: user._id,
+      tokenHash: crypto.createHash('sha256').update(rawToken).digest('hex'),
+      expiresAt: new Date(Date.now() + 15 * 60 * 1000),
+    });
+    if (process.env.NODE_ENV !== 'production') response.developmentToken = rawToken;
+  }
+  return res.json(response);
+}));
+
+app.post('/api/auth/reset-password', asyncRoute(async (req, res) => {
+  const { token, newPassword } = parseBody(resetPasswordSchema, req.body);
+  const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+  const reset = await PasswordResetToken.findOne({ tokenHash, usedAt: { $exists: false }, expiresAt: { $gt: new Date() } });
+  if (!reset) return res.status(400).json({ error: 'This reset link is invalid or expired' });
+  const user = await User.findByIdAndUpdate(reset.userId, { $set: { passwordHash: await bcrypt.hash(newPassword, 12), status: 'active' } }, { new: true });
+  if (!user) return res.status(400).json({ error: 'Account no longer exists' });
+  reset.usedAt = new Date();
+  await reset.save();
+  return res.json({ message: 'Password reset successfully' });
 }));
 
 app.patch('/api/profile', requireAuth, profileUpload.single('photo'), asyncRoute(async (req: AuthRequest, res) => {

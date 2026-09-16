@@ -13,6 +13,7 @@ import {
   HelpCircle,
 } from "lucide-react";
 import { Appointment, AppointmentServiceType } from "../types";
+import { AuthUser } from "../lib/api";
 
 interface AppointmentBookingViewProps {
   appointments: Appointment[];
@@ -22,6 +23,7 @@ interface AppointmentBookingViewProps {
     message: string,
     variant?: "success" | "error" | "info" | "processing",
   ) => void;
+  customer?: AuthUser | null;
 }
 
 const SERVICES = [
@@ -137,18 +139,25 @@ export const AppointmentBookingView: React.FC<AppointmentBookingViewProps> = ({
   appointments,
   onAddAppointment,
   onNotify,
+  customer,
 }) => {
   const [selectedService, setSelectedService] =
     useState<AppointmentServiceType>("notary_public");
   const [selectedDate, setSelectedDate] = useState("2026-09-08");
   const [selectedSlot, setSelectedSlot] = useState("10:00 AM");
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
+  const [name, setName] = useState(customer?.name || "");
+  const [email, setEmail] = useState(customer?.email || "");
+  const [phone, setPhone] = useState(customer?.phone || "");
   const [serviceDetails, setServiceDetails] = useState("");
   const [confirmedTicket, setConfirmedTicket] = useState<Appointment | null>(
     null,
   );
+
+  React.useEffect(() => {
+    setName(customer?.name || "");
+    setEmail(customer?.email || "");
+    setPhone(customer?.phone || "");
+  }, [customer]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

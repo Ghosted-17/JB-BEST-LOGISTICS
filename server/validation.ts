@@ -35,6 +35,15 @@ export const loginSchema = z.object({
   password: z.string().min(1).max(128),
 });
 
+export const forgotPasswordSchema = z.object({
+  email: z.string().trim().email(),
+});
+
+export const resetPasswordSchema = z.object({
+  token: z.string().min(32).max(200),
+  newPassword: z.string().min(8).max(128),
+});
+
 export const quoteSchema = packageSchema.extend({
   deliveryOption: z.enum(['standard', 'express', 'same_day', 'premium_overnight']),
   transport: z.enum(['road', 'air', 'sea']),

@@ -285,13 +285,21 @@ export const Navbar: React.FC<NavbarProps> = ({
                   <span>Customer Care</span>
                 </a>
                 {isAuthenticated ? (
-                  <button
-                    onClick={onOpenProfile || onLogout}
-                    className="hidden sm:inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-1.5 font-semibold text-white transition hover:bg-blue-700 cursor-pointer"
-                  >
-                    <User className="h-3.5 w-3.5" />
-                    <span>{currentUserName || "Account"}</span>
-                  </button>
+                  <>
+                    <button
+                      onClick={onOpenProfile}
+                      className="hidden sm:inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 font-semibold text-slate-700 transition hover:bg-slate-50 cursor-pointer"
+                    >
+                      <User className="h-3.5 w-3.5" />
+                      <span>{currentUserName || "Account"}</span>
+                    </button>
+                    <button
+                      onClick={onLogout}
+                      className="hidden sm:inline-flex items-center rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-blue-700 cursor-pointer"
+                    >
+                      Log out
+                    </button>
+                  </>
                 ) : (
                   <button
                     onClick={onOpenAuth}

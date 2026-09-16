@@ -12,6 +12,7 @@ import { AdminDashboard } from "./components/admin/AdminDashboard";
 import { BranchDashboard } from "./components/branch/BranchDashboard";
 import { ArchitectureModal } from "./components/ArchitectureModal";
 import { AuthView } from "./components/AuthView";
+import { CustomerProfileView } from "./components/CustomerProfileView";
 import {
   INITIAL_SHIPMENTS,
   INITIAL_INVOICES,
@@ -42,7 +43,7 @@ import {
   Store,
 } from "lucide-react";
 import { Span } from "next/dist/trace";
-import { AuthUser } from "./lib/api";
+import { AuthUser, getCurrentUser } from "./lib/api";
 
 type ToastVariant = "success" | "error" | "info" | "processing";
 
@@ -157,6 +158,26 @@ export default function App() {
     }
   });
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+
+  useEffect(() => {
+    const token = localStorage.getItem("jb_best_token");
+    if (!token) return;
+
+    getCurrentUser()
+      .then(({ user }) => {
+        setAuthUser(user);
+        localStorage.setItem("jb_best_user", JSON.stringify(user));
+        if (user.role === "admin") setPortal("admin");
+        else if (user.role === "branch") setPortal("branch");
+        else if (["rider", "warehouse", "carrier"].includes(user.role)) setPortal("staff");
+        else setPortal("consumer");
+      })
+      .catch(() => {
+        localStorage.removeItem("jb_best_token");
+        localStorage.removeItem("jb_best_user");
+        setAuthUser(null);
+      });
+  }, []);
 
   // Application State
   const [shipments, setShipments] = useState<Shipment[]>(INITIAL_SHIPMENTS);
@@ -436,8 +457,12 @@ export default function App() {
               : "max-w-7xl px-4 sm:px-6 lg:px-8 py-6 sm:py-8"
           }`}
         >
-          {authUser && authUser.role !== "customer" && (authUser.mustChangePassword || isProfileOpen) ? (
-            <StaffProfileView user={authUser} required={Boolean(authUser.mustChangePassword)} onSaved={handleProfileSaved} />
+          {authUser && ((authUser.role !== "customer" && (authUser.mustChangePassword || isProfileOpen)) || (authUser.role === "customer" && isProfileOpen)) ? (
+            authUser.role === "customer" ? (
+              <CustomerProfileView user={authUser} onSaved={handleProfileSaved} />
+            ) : (
+              <StaffProfileView user={authUser} required={Boolean(authUser.mustChangePassword)} onSaved={handleProfileSaved} />
+            )
           ) : <>
           {/* ======================================================================= */}
           {/* 1. STAFF DASHBOARD                                                      */}
@@ -628,6 +653,7 @@ export default function App() {
                     appointments={appointments}
                     onAddAppointment={handleAddAppointment}
                     onNotify={showToast}
+                    customer={authUser?.role === "customer" ? authUser : null}
                   />
                 )}
 
@@ -636,6 +662,7 @@ export default function App() {
                     pickups={pickups}
                     onAddPickup={handleAddPickup}
                     onNotify={showToast}
+                    customer={authUser?.role === "customer" ? authUser : null}
                   />
                 )}
 
