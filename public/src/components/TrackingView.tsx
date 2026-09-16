@@ -64,10 +64,10 @@ export const TrackingView: React.FC<TrackingViewProps> = ({
   onUpdateShipment,
 }) => {
   const [searchQuery, setSearchQuery] = useState(
-    initialTrackingId || "JB-8829-US",
+    initialTrackingId || "JB8K4M2Q7R9T5V3X1Z6P",
   );
   const [selectedId, setSelectedId] = useState(
-    initialTrackingId || "JB-8829-US",
+    initialTrackingId || "JB8K4M2Q7R9T5V3X1Z6P",
   );
   const [isUpdating, setIsUpdating] = useState(false);
   const [showOptionalSpecs, setShowOptionalSpecs] = useState(false);
@@ -244,7 +244,7 @@ export const TrackingView: React.FC<TrackingViewProps> = ({
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="e.g. JB-8829-US"
+                placeholder="20-character tracking ID"
                 className="w-full pl-10 pr-3 py-2.5 bg-gray-50 rounded-xl border border-gray-200 text-gray-900 placeholder:text-gray-400 text-sm font-medium focus:bg-white focus:border-blue-600 focus:outline-none transition"
               />
             </div>

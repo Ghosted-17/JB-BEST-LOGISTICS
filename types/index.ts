@@ -81,6 +81,7 @@ export interface PackageDetails {
 
 export interface Shipment {
   id: string; // Document ID / tracking number
+  branchId?: string;
   trackingNumber: string;
   qrCode?: string;
   qrPayload?: string;

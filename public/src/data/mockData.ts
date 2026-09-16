@@ -2,8 +2,8 @@ import { Shipment, Invoice, Appointment, PickupRequest } from '../types';
 
 export const INITIAL_SHIPMENTS: Shipment[] = [
   {
-    id: 'JB-8829-US',
-    trackingNumber: 'JB-8829-US',
+    id: 'JB8K4M2Q7R9T5V3X1Z6P',
+    trackingNumber: 'JB8K4M2Q7R9T5V3X1Z6P',
     carrier: 'fedex',
     serviceLevel: 'FedEx Priority Overnight',
     sender: {
@@ -65,7 +65,7 @@ export const INITIAL_SHIPMENTS: Shipment[] = [
     trackingLogs: [
       {
         id: 'log-1',
-        shipmentId: 'JB-8829-US',
+        shipmentId: 'JB8K4M2Q7R9T5V3X1Z6P',
         status: 'order_created',
         title: 'Manifest & Shipping Label Created',
         description: 'Package received at JB & Best Logistics retail hub counter.',
@@ -81,7 +81,7 @@ export const INITIAL_SHIPMENTS: Shipment[] = [
       },
       {
         id: 'log-2',
-        shipmentId: 'JB-8829-US',
+        shipmentId: 'JB8K4M2Q7R9T5V3X1Z6P',
         status: 'picked_up',
         title: 'Carrier Intake & Weigh-In Complete',
         description: 'Tendered to FedEx Express linehaul vehicle.',
@@ -97,7 +97,7 @@ export const INITIAL_SHIPMENTS: Shipment[] = [
       },
       {
         id: 'log-3',
-        shipmentId: 'JB-8829-US',
+        shipmentId: 'JB8K4M2Q7R9T5V3X1Z6P',
         status: 'in_transit',
         title: 'In Transit via I-20 Corridor',
         description: 'Linehaul vehicle departed intermediate transit check.',
@@ -113,7 +113,7 @@ export const INITIAL_SHIPMENTS: Shipment[] = [
       },
       {
         id: 'log-4',
-        shipmentId: 'JB-8829-US',
+        shipmentId: 'JB8K4M2Q7R9T5V3X1Z6P',
         status: 'out_for_delivery',
         title: 'Out for Courier Delivery',
         description: 'Courier vehicle dispatched. Driver en route to Savannah Hwy.',
@@ -130,8 +130,8 @@ export const INITIAL_SHIPMENTS: Shipment[] = [
     ],
   },
   {
-    id: 'UPS-4190-GA',
-    trackingNumber: 'UPS-4190-GA',
+    id: 'UP4K9M2Q7R5T8V3X1Z6N',
+    trackingNumber: 'UP4K9M2Q7R5T8V3X1Z6N',
     carrier: 'ups',
     serviceLevel: 'UPS Ground Commercial',
     sender: {
@@ -191,7 +191,7 @@ export const INITIAL_SHIPMENTS: Shipment[] = [
     trackingLogs: [
       {
         id: 'log-ups-1',
-        shipmentId: 'UPS-4190-GA',
+        shipmentId: 'UP4K9M2Q7R5T8V3X1Z6N',
         status: 'order_created',
         title: 'Custom Packing & Crating Completed',
         description: 'JB & Best Logistics specialist crafted wood-framed crate.',
@@ -206,7 +206,7 @@ export const INITIAL_SHIPMENTS: Shipment[] = [
       },
       {
         id: 'log-ups-2',
-        shipmentId: 'UPS-4190-GA',
+        shipmentId: 'UP4K9M2Q7R5T8V3X1Z6N',
         status: 'picked_up',
         title: 'Departed Facility on Linehaul',
         description: 'Origin trailer loaded with secured pallet blocks.',
@@ -221,7 +221,7 @@ export const INITIAL_SHIPMENTS: Shipment[] = [
       },
       {
         id: 'log-ups-3',
-        shipmentId: 'UPS-4190-GA',
+        shipmentId: 'UP4K9M2Q7R5T8V3X1Z6N',
         status: 'in_transit',
         title: 'Sorting Hub Scan - Macon, GA',
         description: 'Arrived at Macon central crossroads distribution facility.',
@@ -238,8 +238,8 @@ export const INITIAL_SHIPMENTS: Shipment[] = [
     ],
   },
   {
-    id: 'USPS-9102-EXP',
-    trackingNumber: 'USPS-9102-EXP',
+    id: 'US9K2M7Q4R8T5V3X1Z6P',
+    trackingNumber: 'US9K2M7Q4R8T5V3X1Z6P',
     carrier: 'usps',
     serviceLevel: 'USPS Priority Mail Express',
     sender: {
@@ -300,7 +300,7 @@ export const INITIAL_SHIPMENTS: Shipment[] = [
     trackingLogs: [
       {
         id: 'log-usps-1',
-        shipmentId: 'USPS-9102-EXP',
+        shipmentId: 'US9K2M7Q4R8T5V3X1Z6P',
         status: 'order_created',
         title: 'Postage Purchased at JB & Best Retail Station',
         description: 'USPS Priority Mail Express Flat Rate Envelope prepared.',
@@ -315,7 +315,7 @@ export const INITIAL_SHIPMENTS: Shipment[] = [
       },
       {
         id: 'log-usps-2',
-        shipmentId: 'USPS-9102-EXP',
+        shipmentId: 'US9K2M7Q4R8T5V3X1Z6P',
         status: 'picked_up',
         title: 'Accepted at USPS Postal Facility',
         description: 'Scanned into postal stream.',
@@ -330,7 +330,7 @@ export const INITIAL_SHIPMENTS: Shipment[] = [
       },
       {
         id: 'log-usps-3',
-        shipmentId: 'USPS-9102-EXP',
+        shipmentId: 'US9K2M7Q4R8T5V3X1Z6P',
         status: 'delivered',
         title: 'Delivered, Left with Individual',
         description: 'Signed for by: M. GIBSON at Front Desk.',

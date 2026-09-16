@@ -1,4 +1,5 @@
 import express from 'express';
+import multer from 'multer';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
@@ -8,11 +9,14 @@ import crypto from 'node:crypto';
 import mongoose from 'mongoose';
 import { config } from './config';
 import { connectDatabase } from './db';
-import { ActivityLog, Notification, Payment, PickupJob, Shipment, User, type DeliveryOption, type Role, type ShipmentStatus } from './models';
+import { ActivityLog, Appointment, Branch, IdempotencyKey, Notification, Payment, PickupJob, Shipment, User, type DeliveryOption, type Role, type ShipmentStatus } from './models';
 import { allowRoles, issueToken, publicUser, requireAuth, type AuthRequest } from './auth';
 import { calculateQuote, isAfterDropoffCutoff } from './pricing';
+import { adminPasswordResetSchema, adminUserCreateSchema, adminUserUpdateSchema, appointmentSchema, branchCreateSchema, carrierAssignmentSchema, loginSchema, parseBody, parsePagination, paymentSchema, profileUpdateSchema, quoteSchema, registerSchema, shipmentSchema } from './validation';
+import { uploadPrivateProfilePhoto } from './storage';
 
 const app = express();
+const profileUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 }, fileFilter: (_req, file, callback) => callback(null, ['image/jpeg', 'image/png', 'image/webp'].includes(file.mimetype)) });
 app.set('trust proxy', 1);
 app.use(helmet());
 app.use(cors({ origin: config.clientOrigin, credentials: true }));
@@ -23,21 +27,52 @@ const asyncRoute = (handler: express.RequestHandler): express.RequestHandler => 
   Promise.resolve(handler(req, res, next)).catch(next);
 };
 
-const createTrackingId = async () => {
+const createShipmentIdentifier = async (field: 'orderId' | 'trackingId') => {
+  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
   for (;;) {
-    const candidate = crypto.randomInt(1, 10).toString() + Array.from({ length: 19 }, () => crypto.randomInt(0, 10)).join('');
-    if (!(await Shipment.exists({ trackingId: candidate }))) return candidate;
+    const candidate = Array.from({ length: 20 }, () => alphabet[crypto.randomInt(0, alphabet.length)]).join('');
+    if (!(await Shipment.exists({ [field]: candidate }))) return candidate;
   }
 };
 
 const logActivity = (req: AuthRequest, action: string, resource: string, resourceId?: string, metadata?: unknown) =>
   ActivityLog.create({ actorId: req.user?._id, action, resource, resourceId, ip: req.ip, metadata });
 
+const httpError = (message: string, statusCode: number) => {
+  const error = new Error(message);
+  Object.assign(error, { statusCode });
+  return error;
+};
+
+const claimIdempotency = async (req: AuthRequest, scope: string) => {
+  const key = req.header('idempotency-key')?.trim();
+  if (!key || key.length > 128) throw httpError('A valid Idempotency-Key header is required', 400);
+  const requestHash = crypto.createHash('sha256').update(JSON.stringify(req.body)).digest('hex');
+  try {
+    return await IdempotencyKey.create({
+      userId: req.user!._id,
+      key,
+      scope,
+      requestHash,
+      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+    });
+  } catch (error) {
+    if ((error as { code?: number }).code !== 11000) throw error;
+    const existing = await IdempotencyKey.findOne({ userId: req.user!._id, key, scope });
+    if (!existing || existing.requestHash !== requestHash) throw httpError('Idempotency key was already used with different request data', 409);
+    if (existing.status === 'pending') throw httpError('An identical request is already being processed', 409);
+    return existing;
+  }
+};
+
+const completeIdempotency = async (record: { _id: unknown }, statusCode: number, response: unknown) => {
+  await IdempotencyKey.findByIdAndUpdate(record._id, { status: 'completed', statusCode, response });
+};
+
 app.get('/health', (_req, res) => res.json({ ok: true, service: 'jb-best-logistics-api' }));
 
 app.post('/api/auth/register', asyncRoute(async (req, res) => {
-  const { email, password, name, phone } = req.body as Record<string, string>;
-  if (!email || !password || !name || password.length < 8) return res.status(400).json({ error: 'Name, email, and an 8-character password are required' });
+  const { email, password, name, phone } = parseBody(registerSchema, req.body);
   const exists = await User.exists({ email: email.toLowerCase() });
   if (exists) return res.status(409).json({ error: 'An account with this email already exists' });
   const user = await User.create({ email: email.toLowerCase(), passwordHash: await bcrypt.hash(password, 12), name, phone, role: 'customer' });
@@ -45,28 +80,126 @@ app.post('/api/auth/register', asyncRoute(async (req, res) => {
 }));
 
 app.post('/api/auth/login', asyncRoute(async (req, res) => {
-  const { email, password } = req.body as Record<string, string>;
-  const user = await User.findOne({ email: email?.toLowerCase() }).select('+passwordHash');
-  if (!user || user.status !== 'active' || !(await bcrypt.compare(password || '', user.passwordHash))) return res.status(401).json({ error: 'Invalid email or password' });
+  const { email, password } = parseBody(loginSchema, req.body);
+  const user = await User.findOne({ email: email.toLowerCase() }).select('+passwordHash');
+  if (!user || user.status !== 'active' || !(await bcrypt.compare(password, user.passwordHash))) return res.status(401).json({ error: 'Invalid email or password' });
   await logActivity(req as AuthRequest, 'login', 'user', user.id);
   return res.json({ user: publicUser(user), token: issueToken(user) });
 }));
 
+app.patch('/api/profile', requireAuth, profileUpload.single('photo'), asyncRoute(async (req: AuthRequest, res) => {
+  const profile = parseBody(profileUpdateSchema, req.body);
+  const updates: Record<string, unknown> = { ...profile };
+  if (profile.newPassword) updates.passwordHash = await bcrypt.hash(profile.newPassword, 12);
+  delete updates.newPassword;
+  if (req.file) updates.profilePhotoKey = await uploadPrivateProfilePhoto(req.user!._id.toString(), req.file);
+  updates.mustChangePassword = false;
+  const user = await User.findByIdAndUpdate(req.user!._id, { $set: updates }, { new: true, runValidators: true });
+  return res.json({ user: publicUser(user!) });
+}));
+
 app.get('/api/auth/me', requireAuth, (req: AuthRequest, res) => res.json({ user: publicUser(req.user!) }));
 
+app.get('/api/admin/users', requireAuth, allowRoles('admin'), asyncRoute(async (req, res) => {
+  const { page, limit, skip } = parsePagination(req.query as Record<string, unknown>);
+    const filter = { role: { $in: ['admin', 'rider', 'warehouse', 'branch', 'carrier'] as Role[] } };
+  const [users, total] = await Promise.all([
+    User.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit),
+    User.countDocuments(filter),
+  ]);
+  return res.json({ users: users.map(publicUser), pagination: { page, limit, total, pages: Math.ceil(total / limit) } });
+}));
+
+app.post('/api/admin/users', requireAuth, allowRoles('admin'), asyncRoute(async (req: AuthRequest, res) => {
+  const account = parseBody(adminUserCreateSchema, req.body);
+  if (await User.exists({ email: account.email.toLowerCase() })) return res.status(409).json({ error: 'An account with this email already exists' });
+  if (account.branchId && !mongoose.isValidObjectId(account.branchId)) return res.status(400).json({ error: 'Invalid branch ID' });
+  if (['branch', 'rider', 'warehouse', 'carrier'].includes(account.role) && !account.branchId) return res.status(400).json({ error: 'Operational accounts require a branch ID' });
+  const user = await User.create({
+    ...account,
+    email: account.email.toLowerCase(),
+    passwordHash: await bcrypt.hash(account.password, 12),
+    mustChangePassword: true,
+    branchId: account.branchId ? new mongoose.Types.ObjectId(account.branchId) : undefined,
+  });
+  await logActivity(req, 'create_account', 'user', user.id, { role: user.role });
+  return res.status(201).json({ user: publicUser(user) });
+}));
+
+app.get('/api/admin/branches', requireAuth, allowRoles('admin'), asyncRoute(async (_req, res) => {
+  return res.json({ branches: await Branch.find({ active: true }).sort({ name: 1 }) });
+}));
+
+app.post('/api/admin/branches', requireAuth, allowRoles('admin'), asyncRoute(async (req: AuthRequest, res) => {
+  const branchRequest = parseBody(branchCreateSchema, req.body);
+  const branch = await Branch.create(branchRequest);
+  await logActivity(req, 'create_branch', 'branch', branch.id);
+  return res.status(201).json({ branch });
+}));
+
+app.patch('/api/admin/users/:id', requireAuth, allowRoles('admin'), asyncRoute(async (req: AuthRequest, res) => {
+  if (!mongoose.isValidObjectId(req.params.id)) return res.status(400).json({ error: 'Invalid user ID' });
+  const changes = parseBody(adminUserUpdateSchema, req.body);
+    const user = await User.findOneAndUpdate(
+      { _id: req.params.id, role: { $in: ['admin', 'rider', 'warehouse', 'branch', 'carrier'] } },
+    { $set: changes },
+    { new: true, runValidators: true },
+  );
+  if (!user) return res.status(404).json({ error: 'Staff account not found' });
+  await logActivity(req, 'update_staff_account', 'user', user.id, { changes: Object.keys(changes) });
+  return res.json({ user: publicUser(user) });
+}));
+
+app.post('/api/admin/users/:id/reset-password', requireAuth, allowRoles('admin'), asyncRoute(async (req: AuthRequest, res) => {
+  if (!mongoose.isValidObjectId(req.params.id)) return res.status(400).json({ error: 'Invalid user ID' });
+  const { newPassword } = parseBody(adminPasswordResetSchema, req.body);
+    const user = await User.findOneAndUpdate(
+      { _id: req.params.id, role: { $in: ['admin', 'rider', 'warehouse', 'branch', 'carrier'] } },
+    { $set: { passwordHash: await bcrypt.hash(newPassword, 12), mustChangePassword: true } },
+    { new: true },
+  );
+  if (!user) return res.status(404).json({ error: 'Staff account not found' });
+  await logActivity(req, 'reset_staff_password', 'user', user.id);
+  return res.json({ user: publicUser(user) });
+}));
+
+app.post('/api/appointments', requireAuth, allowRoles('customer', 'warehouse', 'admin'), asyncRoute(async (req: AuthRequest, res) => {
+  const appointmentRequest = parseBody(appointmentSchema, req.body);
+  const idempotency = await claimIdempotency(req, 'create-appointment');
+  if (idempotency.status === 'completed') return res.status(idempotency.statusCode || 200).json(idempotency.response);
+  const appointment = await Appointment.create({ ...appointmentRequest, customerId: req.user!._id, status: 'confirmed' });
+  const response = { appointment };
+  await completeIdempotency(idempotency, 201, response);
+  return res.status(201).json(response);
+}));
+
+app.get('/api/appointments', requireAuth, allowRoles('customer', 'warehouse', 'admin'), asyncRoute(async (req: AuthRequest, res) => {
+  const { page, limit, skip } = parsePagination(req.query as Record<string, unknown>);
+  const filter = req.user!.role === 'customer' ? { customerId: req.user!._id } : {};
+  const [appointments, total] = await Promise.all([
+    Appointment.find(filter).sort({ appointmentDate: 1, timeSlot: 1 }).skip(skip).limit(limit),
+    Appointment.countDocuments(filter),
+  ]);
+  return res.json({ appointments, pagination: { page, limit, total, pages: Math.ceil(total / limit) } });
+}));
+
 app.post('/api/quotes', asyncRoute(async (req, res) => {
-  const { length, width, height, weight, deliveryOption, transport, international } = req.body;
-  if (![length, width, height, weight].every((value) => Number.isFinite(Number(value)))) return res.status(400).json({ error: 'Package dimensions and weight are required' });
-  return res.json(calculateQuote({ length: Number(length), width: Number(width), height: Number(height), weight: Number(weight), deliveryOption: deliveryOption as DeliveryOption, transport, international: Boolean(international) }));
+  const quoteRequest = parseBody(quoteSchema, req.body);
+  return res.json(calculateQuote(quoteRequest));
 }));
 
 app.post('/api/shipments', requireAuth, allowRoles('customer', 'warehouse', 'admin'), asyncRoute(async (req: AuthRequest, res) => {
-  const { sender, receiver, package: packageDetails, deliveryOption, transport, international = false } = req.body;
-  if (!sender || !receiver || !packageDetails || !deliveryOption || !transport) return res.status(400).json({ error: 'Sender, receiver, package, delivery option, and transport are required' });
+  const { sender, receiver, package: packageDetails, deliveryOption, transport, international } = parseBody(shipmentSchema, req.body);
+  const idempotency = await claimIdempotency(req, 'create-shipment');
+  if (idempotency.status === 'completed') return res.status(idempotency.statusCode || 200).json(idempotency.response);
   const quote = calculateQuote({ ...packageDetails, deliveryOption, transport, international });
   if (quote.cutoffPassed && deliveryOption === 'same_day') return res.status(422).json({ error: 'Same-day drop-off cutoff is 5:30 PM local time' });
-  const trackingId = await createTrackingId();
+  const [orderId, trackingId] = await Promise.all([
+    createShipmentIdentifier('orderId'),
+    createShipmentIdentifier('trackingId'),
+  ]);
   const shipment = await Shipment.create({
+    orderId,
     trackingId,
     customerId: req.user!._id,
     sender,
@@ -81,16 +214,29 @@ app.post('/api/shipments', requireAuth, allowRoles('customer', 'warehouse', 'adm
   });
   await logActivity(req, 'create', 'shipment', shipment.id, { trackingId });
   await Notification.create({ userId: req.user!._id, shipmentId: shipment._id, channel: 'in_app', title: 'Shipment booked', body: `Tracking ID ${trackingId} is ready.` });
-  return res.status(201).json({ shipment, quote, trackingId });
+  const response = { shipment, quote, orderId, trackingId };
+  await completeIdempotency(idempotency, 201, response);
+  return res.status(201).json(response);
 }));
 
 app.get('/api/shipments', requireAuth, asyncRoute(async (req: AuthRequest, res) => {
-  const filter = req.user!.role === 'customer' ? { customerId: req.user!._id } : {};
-  return res.json({ shipments: await Shipment.find(filter).sort({ createdAt: -1 }).limit(100) });
+  const { page, limit, skip } = parsePagination(req.query as Record<string, unknown>);
+  const filter = req.user!.role === 'customer'
+    ? { customerId: req.user!._id }
+    : req.user!.branchId
+      ? { branchId: req.user!.branchId }
+      : {};
+  const [shipments, total] = await Promise.all([
+    Shipment.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit),
+    Shipment.countDocuments(filter),
+  ]);
+  return res.json({ shipments, pagination: { page, limit, total, pages: Math.ceil(total / limit) } });
 }));
 
 app.get('/api/shipments/track/:trackingId', asyncRoute(async (req, res) => {
-  const shipment = await Shipment.findOne({ trackingId: req.params.trackingId }).select('-customerId');
+  const identifier = req.params.trackingId.trim().toUpperCase();
+  if (!/^[A-Z0-9]{20}$/.test(identifier)) return res.status(400).json({ error: 'Tracking or order ID must be 20 uppercase letters or numbers' });
+  const shipment = await Shipment.findOne({ $or: [{ trackingId: identifier }, { orderId: identifier }] }).select('-customerId');
   if (!shipment) return res.status(404).json({ error: 'Tracking ID not found' });
   return res.json({ shipment });
 }));
@@ -113,20 +259,45 @@ app.patch('/api/shipments/:id/status', requireAuth, allowRoles('rider', 'warehou
   return res.json({ shipment });
 }));
 
-app.post('/api/shipments/:id/assign-rider', requireAuth, allowRoles('admin', 'warehouse'), asyncRoute(async (req: AuthRequest, res) => {
+app.post('/api/shipments/:id/assign-rider', requireAuth, allowRoles('admin', 'warehouse', 'branch'), asyncRoute(async (req: AuthRequest, res) => {
   const { riderId, scheduledAt } = req.body as { riderId: string; scheduledAt: string };
   const rider = await User.findOne({ _id: riderId, role: 'rider', status: 'active' });
   if (!rider) return res.status(400).json({ error: 'Active rider not found' });
-  const shipment = await Shipment.findByIdAndUpdate(req.params.id, { assignedRiderId: rider._id, status: 'assigned' }, { new: true });
+  if (req.user!.role === 'branch' && (!req.user!.branchId || rider.branchId?.toString() !== req.user!.branchId.toString())) return res.status(403).json({ error: 'Rider is outside your branch' });
+  const shipment = await Shipment.findOne({
+    _id: req.params.id,
+    ...(req.user!.role === 'branch' ? { branchId: req.user!.branchId } : {}),
+  });
   if (!shipment) return res.status(404).json({ error: 'Shipment not found' });
-  const job = await PickupJob.create({ shipmentId: shipment._id, riderId: rider._id, scheduledAt: scheduledAt ? new Date(scheduledAt) : new Date(), status: 'assigned' });
+  shipment.assignedRiderId = rider._id;
+  shipment.status = 'assigned';
+  await shipment.save();
+  const job = await PickupJob.create({ shipmentId: shipment._id, riderId: rider._id, branchId: shipment.branchId, scheduledAt: scheduledAt ? new Date(scheduledAt) : new Date(), status: 'assigned' });
   await logActivity(req, 'assign', 'pickup_job', job.id, { shipmentId: shipment.id, riderId });
   return res.json({ shipment, job });
 }));
 
+app.post('/api/shipments/:id/assign-branch', requireAuth, allowRoles('admin'), asyncRoute(async (req: AuthRequest, res) => {
+  const { branchId } = req.body as { branchId?: string };
+  if (!branchId || !mongoose.isValidObjectId(branchId) || !(await Branch.exists({ _id: branchId, active: true }))) return res.status(400).json({ error: 'Active branch not found' });
+  const shipment = await Shipment.findByIdAndUpdate(req.params.id, { branchId: new mongoose.Types.ObjectId(branchId) }, { new: true });
+  if (!shipment) return res.status(404).json({ error: 'Shipment not found' });
+  return res.json({ shipment });
+}));
+
+app.post('/api/shipments/:id/assign-carrier', requireAuth, allowRoles('admin', 'branch'), asyncRoute(async (req: AuthRequest, res) => {
+  const { carrier } = parseBody(carrierAssignmentSchema, req.body);
+  const shipment = await Shipment.findOne({ _id: req.params.id, ...(req.user!.role === 'branch' ? { branchId: req.user!.branchId } : {}) });
+  if (!shipment) return res.status(404).json({ error: 'Shipment not found in your branch' });
+  shipment.carrier = carrier;
+  await shipment.save();
+  return res.json({ shipment });
+}));
+
 app.post('/api/payments', requireAuth, allowRoles('customer', 'warehouse', 'admin'), asyncRoute(async (req: AuthRequest, res) => {
-  const { shipmentId, method, amount, installmentNumber, installmentCount } = req.body as { shipmentId: string; method: 'cash' | 'installment' | 'paystack'; amount: number; installmentNumber?: number; installmentCount?: number };
-  if (!shipmentId || !['cash', 'installment', 'paystack'].includes(method) || !Number.isFinite(Number(amount))) return res.status(400).json({ error: 'Shipment, payment method, and amount are required' });
+  const { shipmentId, method, amount, installmentNumber, installmentCount } = parseBody(paymentSchema, req.body);
+  const idempotency = await claimIdempotency(req, 'create-payment');
+  if (idempotency.status === 'completed') return res.status(idempotency.statusCode || 200).json(idempotency.response);
   const shipment = await Shipment.findById(shipmentId);
   if (!shipment || (req.user!.role === 'customer' && shipment.customerId.toString() !== req.user!._id.toString())) return res.status(404).json({ error: 'Shipment not found' });
   const reference = `JB-${crypto.randomBytes(10).toString('hex')}`;
@@ -136,18 +307,33 @@ app.post('/api/payments', requireAuth, allowRoles('customer', 'warehouse', 'admi
     const paystack = await fetch('https://api.paystack.co/transaction/initialize', { method: 'POST', headers: { Authorization: `Bearer ${config.paystackSecret}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ email: req.user!.email, amount: Math.round(Number(amount) * 100), reference, callback_url: `${config.clientOrigin}/payments/complete` }) });
     const result = await paystack.json() as { status?: boolean; message?: string; data?: unknown };
     if (!paystack.ok || !result.status) return res.status(502).json({ error: result.message || 'Unable to initialize Paystack payment' });
-    return res.status(201).json({ payment, checkout: result.data });
+    const response = { payment, checkout: result.data };
+    await completeIdempotency(idempotency, 201, response);
+    return res.status(201).json(response);
   }
-  return res.status(201).json({ payment });
+  const response = { payment };
+  await completeIdempotency(idempotency, 201, response);
+  return res.status(201).json(response);
 }));
 
-app.get('/api/jobs', requireAuth, allowRoles('rider', 'warehouse', 'admin'), asyncRoute(async (req: AuthRequest, res) => {
-  const filter = req.user!.role === 'rider' ? { riderId: req.user!._id } : {};
-  return res.json({ jobs: await PickupJob.find(filter).populate('shipmentId').sort({ scheduledAt: 1 }).limit(100) });
+app.get('/api/jobs', requireAuth, allowRoles('rider', 'warehouse', 'branch', 'admin'), asyncRoute(async (req: AuthRequest, res) => {
+  const { page, limit, skip } = parsePagination(req.query as Record<string, unknown>);
+  const filter = req.user!.role === 'rider' ? { riderId: req.user!._id } : req.user!.branchId ? { branchId: req.user!.branchId } : {};
+  const [jobs, total] = await Promise.all([
+    PickupJob.find(filter).populate('shipmentId').sort({ scheduledAt: 1 }).skip(skip).limit(limit),
+    PickupJob.countDocuments(filter),
+  ]);
+  return res.json({ jobs, pagination: { page, limit, total, pages: Math.ceil(total / limit) } });
 }));
 
 app.get('/api/notifications', requireAuth, asyncRoute(async (req: AuthRequest, res) => {
-  return res.json({ notifications: await Notification.find().where('userId').equals(req.user!._id).sort({ createdAt: -1 }).limit(50) });
+  const { page, limit, skip } = parsePagination(req.query as Record<string, unknown>);
+  const filter = { userId: req.user!._id };
+  const [notifications, total] = await Promise.all([
+    Notification.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit),
+    Notification.countDocuments(filter),
+  ]);
+  return res.json({ notifications, pagination: { page, limit, total, pages: Math.ceil(total / limit) } });
 }));
 
 app.get('/api/reports/summary', requireAuth, allowRoles('admin', 'warehouse'), asyncRoute(async (_req, res) => {
@@ -160,6 +346,11 @@ app.get('/api/reports/summary', requireAuth, allowRoles('admin', 'warehouse'), a
 
 app.use((error: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error(error);
+  if (error instanceof Error && 'statusCode' in error) {
+    const typedError = error as Error & { statusCode: number; details?: unknown };
+    return res.status(typedError.statusCode).json({ error: typedError.message, details: typedError.details });
+  }
+  if ((error as { code?: number }).code === 11000) return res.status(409).json({ error: 'A record with these unique values already exists' });
   if (error instanceof mongoose.Error.ValidationError) return res.status(400).json({ error: 'Validation failed', details: Object.values(error.errors).map((item) => item.message) });
   return res.status(500).json({ error: 'Internal server error' });
 });

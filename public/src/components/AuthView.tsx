@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import {
   ArrowLeft,
-  BriefcaseBusiness,
   LockKeyhole,
   Mail,
   Package,
@@ -9,25 +8,25 @@ import {
   User,
   X,
 } from "lucide-react";
-import { login, register } from "../lib/api";
+import { login, register, AuthUser } from "../lib/api";
 
-type AuthRole = "customer" | "staff" | "admin";
-type Portal = "consumer" | "staff" | "admin";
+type Portal = "consumer" | "staff" | "branch" | "admin";
 type UserRole = "customer" | "associate" | "admin";
 
 interface AuthViewProps {
   onBack: () => void;
   setPortal: (portal: Portal) => void;
   setUserRole: (role: UserRole) => void;
+  onAuthenticated: (user: AuthUser) => void;
 }
 
 export const AuthView: React.FC<AuthViewProps> = ({
   onBack,
   setPortal,
   setUserRole,
+  onAuthenticated,
 }) => {
   const [isSignUp, setIsSignUp] = useState(false);
-  const [authRole, setAuthRole] = useState<AuthRole>("customer");
   const [authError, setAuthError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -38,18 +37,18 @@ export const AuthView: React.FC<AuthViewProps> = ({
     const form = new FormData(event.currentTarget);
 
     try {
-      const response =
-        isSignUp && authRole === "customer"
-          ? await register(
-              String(form.get("name") || ""),
-              String(form.get("email") || ""),
-              String(form.get("password") || ""),
-            )
-          : await login(
-              String(form.get("email") || ""),
-              String(form.get("password") || ""),
-            );
+      const response = isSignUp
+        ? await register(
+            String(form.get("name") || ""),
+            String(form.get("email") || ""),
+            String(form.get("password") || ""),
+          )
+        : await login(
+            String(form.get("email") || ""),
+            String(form.get("password") || ""),
+          );
       localStorage.setItem("jb_best_token", response.token);
+      onAuthenticated(response.user);
       const role = response.user.role;
       setUserRole(
         role === "rider" || role === "warehouse" ? "associate" : role,
@@ -57,7 +56,9 @@ export const AuthView: React.FC<AuthViewProps> = ({
       setPortal(
         role === "customer"
           ? "consumer"
-          : role === "rider" || role === "warehouse"
+          : role === "branch"
+            ? "branch"
+          : role === "rider" || role === "warehouse" || role === "carrier"
             ? "staff"
             : "admin",
       );
@@ -139,48 +140,19 @@ export const AuthView: React.FC<AuthViewProps> = ({
                 Account access
               </span>
               <h2 className="mt-2 font-display text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
-                {isSignUp && authRole === "customer"
-                  ? "Create your account"
-                  : "Welcome back"}
+                {isSignUp ? "Create your customer account" : "Customer login"}
               </h2>
               <p className="mt-2 text-sm text-slate-500">
-                {authRole === "customer"
-                  ? "Manage shipments, mailboxes, and receipts."
-                  : `Access your ${authRole} workspace.`}
+                Manage shipments, appointments, pickups, and receipts.
               </p>
             </div>
 
-            <div className="grid grid-cols-3 gap-2 border border-slate-200 bg-slate-50 p-1.5 text-xs font-semibold">
-              {(["customer", "staff", "admin"] as const).map((role) => (
-                <button
-                  key={role}
-                  onClick={() => {
-                    setAuthRole(role);
-                    if (role !== "customer") setIsSignUp(false);
-                  }}
-                  className={`flex items-center justify-center gap-1.5 px-2 py-3 capitalize transition ${authRole === role ? "bg-white text-blue-700 shadow-sm" : "text-slate-500 hover:text-slate-800"}`}
-                >
-                  {role === "customer" ? (
-                    <User className="h-3.5 w-3.5" />
-                  ) : role === "staff" ? (
-                    <BriefcaseBusiness className="h-3.5 w-3.5" />
-                  ) : (
-                    <ShieldCheck className="h-3.5 w-3.5" />
-                  )}
-                  {role}
-                </button>
-              ))}
-            </div>
             <p className="mt-3 text-xs text-slate-400">
-              {authRole === "customer"
-                ? "Book shipments and manage your delivery history."
-                : authRole === "staff"
-                  ? "Manage assigned jobs and warehouse operations."
-                  : "Oversee users, branches, and system activity."}
+              Staff and administrator access is provisioned privately by JB & Best.
             </p>
 
             <form onSubmit={handleSubmit} className="mt-6 space-y-5">
-              {isSignUp && authRole === "customer" && (
+              {isSignUp && (
                 <label className="block text-sm font-semibold text-slate-700">
                   Full name
                   <input
@@ -226,23 +198,15 @@ export const AuthView: React.FC<AuthViewProps> = ({
                 className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 py-3.5 text-sm font-bold text-white shadow-lg shadow-blue-600/20 transition hover:-translate-y-0.5 hover:bg-blue-700 disabled:cursor-wait disabled:opacity-60"
               >
                 <LockKeyhole className="h-4 w-4" />
-                {isSubmitting
-                  ? "Connecting..."
-                  : isSignUp && authRole === "customer"
-                    ? "Create account"
-                    : `Log in as ${authRole}`}
+                  {isSubmitting ? "Connecting..." : isSignUp ? "Create account" : "Log in"}
               </button>
             </form>
-            {authRole === "customer" && (
-              <button
-                onClick={() => setIsSignUp((value) => !value)}
-                className="mt-5 w-full text-center text-sm font-semibold text-blue-700 hover:text-blue-900"
-              >
-                {isSignUp
-                  ? "Already have an account? Log in"
-                  : "New here? Create an account"}
-              </button>
-            )}
+            <button
+              onClick={() => setIsSignUp((value) => !value)}
+              className="mt-5 w-full text-center text-sm font-semibold text-blue-700 hover:text-blue-900"
+            >
+              {isSignUp ? "Already have an account? Log in" : "New here? Create an account"}
+            </button>
             <p className="mt-10 flex items-center justify-center gap-2 text-xs text-slate-400">
               <User className="h-3.5 w-3.5" /> Your account connects every JB &
               Best service.

@@ -14,4 +14,12 @@ export const config = {
   jwtSecret: required('JWT_SECRET', 'development-only-change-me'),
   clientOrigin: process.env.CLIENT_ORIGIN || 'http://localhost:3000',
   paystackSecret: process.env.PAYSTACK_SECRET_KEY || '',
+  redisUrl: process.env.REDIS_URL || '',
+  storage: {
+    endpoint: process.env.STORAGE_ENDPOINT || '',
+    region: process.env.STORAGE_REGION || 'auto',
+    bucket: process.env.STORAGE_BUCKET || '',
+    accessKeyId: process.env.STORAGE_ACCESS_KEY_ID || '',
+    secretAccessKey: process.env.STORAGE_SECRET_ACCESS_KEY || '',
+  },
 };

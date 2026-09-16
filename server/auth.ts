@@ -38,4 +38,6 @@ export const publicUser = (user: UserDocument) => ({
   role: user.role,
   status: user.status,
   branchId: user.branchId,
+  profilePhotoKey: user.profilePhotoKey,
+  mustChangePassword: user.mustChangePassword,
 });

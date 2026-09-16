@@ -23,12 +23,17 @@ import { UserRole } from "../types";
 interface NavbarProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
-  portal: "consumer" | "staff" | "admin";
-  setPortal: (portal: "consumer" | "staff" | "admin") => void;
+  portal: "consumer" | "staff" | "branch" | "admin";
+  setPortal: (portal: "consumer" | "staff" | "branch" | "admin") => void;
   userRole?: UserRole;
   setUserRole?: (role: UserRole) => void;
   onOpenAuth: () => void;
   onOpenArchitecture: () => void;
+  isAuthenticated?: boolean;
+  currentUserName?: string;
+  onLogout?: () => void;
+  onOpenProfile?: () => void;
+  onRequireAuth?: (tab: string) => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -39,6 +44,11 @@ export const Navbar: React.FC<NavbarProps> = ({
   setUserRole,
   onOpenAuth,
   onOpenArchitecture,
+  isAuthenticated = false,
+  currentUserName,
+  onLogout,
+  onOpenProfile,
+  onRequireAuth,
 }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isServicesMenuOpen, setIsServicesMenuOpen] = useState(false);
@@ -127,6 +137,12 @@ export const Navbar: React.FC<NavbarProps> = ({
   ];
 
   const handleNavClick = (tabId: string) => {
+    if (tabId !== "services" && tabId !== "track" && !isAuthenticated) {
+      onRequireAuth?.(tabId);
+      setIsMobileMenuOpen(false);
+      setIsServicesMenuOpen(false);
+      return;
+    }
     setPortal("consumer");
     setActiveTab(tabId);
     setIsMobileMenuOpen(false);
@@ -134,7 +150,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const handleSwitchPortal = (target: "consumer" | "staff" | "admin") => {
+  const handleSwitchPortal = (target: "consumer" | "staff" | "branch" | "admin") => {
     setPortal(target);
     setIsMobileMenuOpen(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -174,10 +190,12 @@ export const Navbar: React.FC<NavbarProps> = ({
                 className={`ml-2 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
                   portal === "staff"
                     ? "bg-amber-100 text-amber-900 border border-amber-200"
-                    : "bg-slate-900 text-white border border-slate-700"
+                    : portal === "branch"
+                      ? "bg-cyan-100 text-cyan-900 border border-cyan-200"
+                      : "bg-slate-900 text-white border border-slate-700"
                 }`}
               >
-                {portal === "staff" ? "Staff Portal" : "Admin Console"}
+                {portal === "staff" ? "Staff Portal" : portal === "branch" ? "Branch Portal" : "Admin Console"}
               </span>
             )}
           </div>
@@ -266,13 +284,23 @@ export const Navbar: React.FC<NavbarProps> = ({
                   <Phone className="h-3.5 w-3.5" />
                   <span>Customer Care</span>
                 </a>
-                <button
-                  onClick={onOpenAuth}
-                  className="hidden sm:inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-1.5 font-semibold text-white transition hover:bg-blue-700 cursor-pointer"
-                >
-                  <User className="h-3.5 w-3.5" />
-                  <span>Log in</span>
-                </button>
+                {isAuthenticated ? (
+                  <button
+                    onClick={onOpenProfile || onLogout}
+                    className="hidden sm:inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-1.5 font-semibold text-white transition hover:bg-blue-700 cursor-pointer"
+                  >
+                    <User className="h-3.5 w-3.5" />
+                    <span>{currentUserName || "Account"}</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={onOpenAuth}
+                    className="hidden sm:inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-1.5 font-semibold text-white transition hover:bg-blue-700 cursor-pointer"
+                  >
+                    <User className="h-3.5 w-3.5" />
+                    <span>Log in / Sign up</span>
+                  </button>
+                )}
               </>
             ) : (
               <button
@@ -378,11 +406,11 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           <div className="pt-3 border-t border-slate-100 space-y-2 text-center text-xs text-slate-500">
             <button
-              onClick={onOpenAuth}
+              onClick={isAuthenticated ? onLogout : onOpenAuth}
               className="w-full py-2 px-3 bg-slate-900 hover:bg-blue-700 text-white rounded-xl font-semibold flex items-center justify-center gap-2 cursor-pointer"
             >
               <User className="w-3.5 h-3.5" />
-              <span>Log in or sign up</span>
+              <span>{isAuthenticated ? "Log out" : "Log in or sign up"}</span>
             </button>
             <a
               href="tel:+14045550199"

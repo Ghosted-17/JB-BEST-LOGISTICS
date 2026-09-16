@@ -7,7 +7,9 @@ import { AppointmentBookingView } from "./components/AppointmentBookingView";
 import { PickupSchedulerView } from "./components/PickupSchedulerView";
 import { InvoiceReceiptView } from "./components/InvoiceReceiptView";
 import { StaffDashboard } from "./components/staff/StaffDashboard";
+import { StaffProfileView } from "./components/staff/StaffProfileView";
 import { AdminDashboard } from "./components/admin/AdminDashboard";
+import { BranchDashboard } from "./components/branch/BranchDashboard";
 import { ArchitectureModal } from "./components/ArchitectureModal";
 import { AuthView } from "./components/AuthView";
 import {
@@ -28,7 +30,6 @@ import {
   Phone,
   Mail,
   ShieldCheck,
-  Truck,
   Search,
   CheckCircle2,
   Calendar,
@@ -38,11 +39,10 @@ import {
   Sparkles,
   HelpCircle,
   FileCheck,
-  Shield,
-  Briefcase,
   Store,
 } from "lucide-react";
 import { Span } from "next/dist/trace";
+import { AuthUser } from "./lib/api";
 
 type ToastVariant = "success" | "error" | "info" | "processing";
 
@@ -140,7 +140,7 @@ function ToastHost({
 }
 
 export default function App() {
-  const [portal, setPortal] = useState<"consumer" | "staff" | "admin">(
+  const [portal, setPortal] = useState<"consumer" | "staff" | "branch" | "admin">(
     "consumer",
   );
   const [activeTab, setActiveTab] = useState<string>("services");
@@ -148,6 +148,15 @@ export default function App() {
   const [isArchitectureOpen, setIsArchitectureOpen] = useState<boolean>(false);
   const [heroSearch, setHeroSearch] = useState<string>("");
   const [isAuthPageOpen, setIsAuthPageOpen] = useState(false);
+  const [authUser, setAuthUser] = useState<AuthUser | null>(() => {
+    try {
+      const storedUser = localStorage.getItem("jb_best_user");
+      return storedUser ? (JSON.parse(storedUser) as AuthUser) : null;
+    } catch {
+      return null;
+    }
+  });
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   // Application State
   const [shipments, setShipments] = useState<Shipment[]>(INITIAL_SHIPMENTS);
@@ -155,10 +164,7 @@ export default function App() {
   const [appointments, setAppointments] =
     useState<Appointment[]>(INITIAL_APPOINTMENTS);
   const [pickups, setPickups] = useState<PickupRequest[]>(INITIAL_PICKUPS);
-  const [activeTrackingNumber, setActiveTrackingNumber] =
-    useState<string>("JB-8829-US");
   const [toasts, setToasts] = useState<ToastItem[]>([]);
-
   const generateQrCodeDataUrl = async (value: string) => {
     try {
       return await QRCode.toDataURL(value, {
@@ -334,6 +340,40 @@ export default function App() {
     showToast("Tracking ready", `Looking up shipment ${trimmed}.`, "info");
   };
 
+  const requireConsumerAuth = (tab: string) => {
+    if (authUser) {
+      setActiveTab(tab);
+      return true;
+    }
+    showToast(
+      "Account required",
+      "Create a customer account or log in to use this service.",
+      "info",
+    );
+    setIsAuthPageOpen(true);
+    return false;
+  };
+
+  const handleAuthenticated = (user: AuthUser) => {
+    setAuthUser(user);
+    localStorage.setItem("jb_best_user", JSON.stringify(user));
+  };
+
+  const handleProfileSaved = (user: AuthUser) => {
+    setAuthUser(user);
+    localStorage.setItem("jb_best_user", JSON.stringify(user));
+    setIsProfileOpen(false);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("jb_best_token");
+    localStorage.removeItem("jb_best_user");
+    setAuthUser(null);
+    setPortal("consumer");
+    setActiveTab("services");
+    showToast("Signed out", "Your customer session has been closed.", "info");
+  };
+
   const handleHeroTrackSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     handleQuickTrack(heroSearch);
@@ -348,8 +388,19 @@ export default function App() {
         setActiveTab={setActiveTab}
         portal={portal}
         setPortal={(newPortal) => {
+          const canAccessPortal =
+            newPortal === "consumer" ||
+            (newPortal === "branch" && authUser?.role === "branch") ||
+            (newPortal === "staff" &&
+              (authUser?.role === "rider" || authUser?.role === "warehouse" || authUser?.role === "carrier")) ||
+            (newPortal === "admin" && authUser?.role === "admin");
+          if (!canAccessPortal) {
+            requireConsumerAuth("services");
+            return;
+          }
           setPortal(newPortal);
           if (newPortal === "consumer") setUserRole("customer");
+          else if (newPortal === "branch") setUserRole("associate");
           else if (newPortal === "staff") setUserRole("associate");
           else setUserRole("admin");
         }}
@@ -357,6 +408,11 @@ export default function App() {
         setUserRole={setUserRole}
         onOpenAuth={() => setIsAuthPageOpen(true)}
         onOpenArchitecture={() => setIsArchitectureOpen(true)}
+        isAuthenticated={Boolean(authUser)}
+        currentUserName={authUser?.name}
+        onLogout={handleLogout}
+        onOpenProfile={() => setIsProfileOpen(true)}
+        onRequireAuth={requireConsumerAuth}
       />
 
       {isAuthPageOpen && (
@@ -364,6 +420,7 @@ export default function App() {
           onBack={() => setIsAuthPageOpen(false)}
           setPortal={setPortal}
           setUserRole={setUserRole}
+          onAuthenticated={handleAuthenticated}
         />
       )}
 
@@ -376,6 +433,9 @@ export default function App() {
               : "max-w-7xl px-4 sm:px-6 lg:px-8 py-6 sm:py-8"
           }`}
         >
+          {authUser && authUser.role !== "customer" && (authUser.mustChangePassword || isProfileOpen) ? (
+            <StaffProfileView user={authUser} required={Boolean(authUser.mustChangePassword)} onSaved={handleProfileSaved} />
+          ) : <>
           {/* ======================================================================= */}
           {/* 1. STAFF DASHBOARD                                                      */}
           {/* ======================================================================= */}
@@ -403,11 +463,14 @@ export default function App() {
               appointments={appointments}
               pickups={pickups}
               onUpdateInvoice={handleUpdateInvoice}
+              onUpdateShipment={handleUpdateShipment}
               onOpenArchitecture={() => setIsArchitectureOpen(true)}
               onSwitchToConsumer={() => setPortal("consumer")}
               onSwitchToStaff={() => setPortal("staff")}
             />
           )}
+
+          {portal === "branch" && <BranchDashboard />}
 
           {/* ======================================================================= */}
           {/* 3. CONSUMER STOREFRONT DASHBOARD                                        */}
@@ -453,7 +516,7 @@ export default function App() {
                             type="text"
                             value={heroSearch}
                             onChange={(e) => setHeroSearch(e.target.value)}
-                            placeholder="Enter tracking number (e.g. JB-8829-US)..."
+                            placeholder="Enter your 20-character tracking ID..."
                             className="w-full rounded-2xl border border-white/70 bg-white py-4 pl-12 pr-4 text-sm font-medium text-gray-900 shadow-xl outline-none transition placeholder:text-gray-400 focus:border-blue-600 focus:ring-4 focus:ring-blue-100 sm:text-base"
                           />
                         </div>
@@ -473,24 +536,24 @@ export default function App() {
                         </span>
                         <button
                           type="button"
-                          onClick={() => handleQuickTrack("JB-8829-US")}
+                          onClick={() => handleQuickTrack("JB8K4M2Q7R9T5V3X1Z6P")}
                           className="px-2.5 py-1 rounded-full bg-white hover:bg-blue-50 text-blue-700 font-medium border border-gray-200 transition cursor-pointer"
                         >
-                          JB-8829-US (FedEx)
+                          JB8K4M2Q7R9T5V3X1Z6P (FedEx)
                         </button>
                         <button
                           type="button"
-                          onClick={() => handleQuickTrack("JB-9102-US")}
+                          onClick={() => handleQuickTrack("UP4K9M2Q7R5T8V3X1Z6N")}
                           className="px-2.5 py-1 rounded-full bg-white hover:bg-amber-50 text-amber-800 font-medium border border-gray-200 transition cursor-pointer"
                         >
-                          JB-9102-US (UPS)
+                          UP4K9M2Q7R5T8V3X1Z6N (UPS)
                         </button>
                         <button
                           type="button"
-                          onClick={() => handleQuickTrack("JB-4421-US")}
+                          onClick={() => handleQuickTrack("US9K2M7Q4R8T5V3X1Z6P")}
                           className="px-2.5 py-1 rounded-full bg-white hover:bg-blue-50 text-blue-800 font-medium border border-gray-200 transition cursor-pointer"
                         >
-                          JB-4421-US (USPS)
+                          US9K2M7Q4R8T5V3X1Z6P (USPS)
                         </button>
                       </div>
 
@@ -533,18 +596,18 @@ export default function App() {
                 {activeTab === "services" && (
                   <ServicesHubView
                     onSelectService={(s) => {
-                      if (s === "pickup") setActiveTab("pickup");
+                      if (s === "pickup") requireConsumerAuth("pickup");
                       else if (s === "notary" || s === "packing")
-                        setActiveTab("appointment");
+                        requireConsumerAuth("appointment");
                       else setActiveTab("track");
                     }}
                     onBookAppointment={() => {
-                      setActiveTab("appointment");
-                      window.scrollTo({ top: 0, behavior: "smooth" });
+                      if (requireConsumerAuth("appointment"))
+                        window.scrollTo({ top: 0, behavior: "smooth" });
                     }}
                     onSchedulePickup={() => {
-                      setActiveTab("pickup");
-                      window.scrollTo({ top: 0, behavior: "smooth" });
+                      if (requireConsumerAuth("pickup"))
+                        window.scrollTo({ top: 0, behavior: "smooth" });
                     }}
                   />
                 )}
@@ -582,6 +645,7 @@ export default function App() {
               </div>
             </>
           )}
+          </>}
         </main>
       )}
 
@@ -648,9 +712,10 @@ export default function App() {
                 <li>
                   <button
                     onClick={() => {
-                      setPortal("consumer");
-                      setActiveTab("appointment");
-                      window.scrollTo({ top: 0, behavior: "smooth" });
+                      if (requireConsumerAuth("appointment")) {
+                        setPortal("consumer");
+                        window.scrollTo({ top: 0, behavior: "smooth" });
+                      }
                     }}
                     className="hover:text-blue-600 transition cursor-pointer"
                   >
@@ -660,9 +725,10 @@ export default function App() {
                 <li>
                   <button
                     onClick={() => {
-                      setPortal("consumer");
-                      setActiveTab("pickup");
-                      window.scrollTo({ top: 0, behavior: "smooth" });
+                      if (requireConsumerAuth("pickup")) {
+                        setPortal("consumer");
+                        window.scrollTo({ top: 0, behavior: "smooth" });
+                      }
                     }}
                     className="hover:text-blue-600 transition cursor-pointer"
                   >
@@ -698,9 +764,9 @@ export default function App() {
               </div>
             </div>
 
-            {/* Column 4: Location & Portals */}
+            {/* Column 4: Location */}
             <div className="space-y-2.5 text-sm">
-              <h4 className="font-semibold text-gray-900">Role Dashboards</h4>
+              <h4 className="font-semibold text-gray-900">Visit Us</h4>
               <ul className="space-y-2 text-xs sm:text-sm">
                 <li>
                   <button
@@ -712,30 +778,6 @@ export default function App() {
                   >
                     <Store className="w-3.5 h-3.5" />
                     <span>Consumer Storefront</span>
-                  </button>
-                </li>
-                <li>
-                  <button
-                    onClick={() => {
-                      setPortal("staff");
-                      window.scrollTo({ top: 0, behavior: "smooth" });
-                    }}
-                    className={`flex items-center gap-1.5 transition cursor-pointer ${portal === "staff" ? "text-amber-600 font-bold" : "text-gray-500 hover:text-amber-600"}`}
-                  >
-                    <Truck className="w-3.5 h-3.5" />
-                    <span>Staff Operations Portal</span>
-                  </button>
-                </li>
-                <li>
-                  <button
-                    onClick={() => {
-                      setPortal("admin");
-                      window.scrollTo({ top: 0, behavior: "smooth" });
-                    }}
-                    className={`flex items-center gap-1.5 transition cursor-pointer ${portal === "admin" ? "text-slate-900 font-bold" : "text-gray-500 hover:text-slate-900"}`}
-                  >
-                    <Shield className="w-3.5 h-3.5" />
-                    <span>Admin Executive Console</span>
                   </button>
                 </li>
               </ul>
